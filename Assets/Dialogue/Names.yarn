@@ -1,0 +1,5 @@
+﻿title: Names
+---
+<<declare $tena = "Тена" as string>>
+<<declare $player = "Игрок" as string>>
+===

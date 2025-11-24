@@ -1,0 +1,22 @@
+{
+  "projectFileVersion": 3,
+  "sourceFiles": [
+    "**/*.yarn"
+  ],
+  "excludeFiles": [
+    "**/*~/*",
+    "./Samples/Yarn Spinner*/*"
+  ],
+  "localisation": {
+    "ru-RU": {
+      "assets": "."
+    },
+    "en": {
+      "assets": "unity:b653cbd89cee383489c2e86a37c66c5f",
+      "strings": "unity:b653cbd89cee383489c2e86a37c66c5f"
+    }
+  },
+  "baseLanguage": "ru-RU",
+  "compilerOptions": {},
+  "definitionsFiles": []
+}

@@ -1,0 +1,12 @@
+﻿title: Test
+---
+{$tena}: Стой! Кто идёт? #line:0459f0e 
+
+-> Друг #line:0053c78 
+    {$player}: Я друг! #line:050b22a 
+    {$tena}: Проходи. #line:0dc0a8e 
+    
+-> Просто прохожий #line:070f209 
+    {$player}: Просто прохожий. #line:00682c0 
+    {$tena}: Ладно, иди. #line:0ca3dae 
+===
