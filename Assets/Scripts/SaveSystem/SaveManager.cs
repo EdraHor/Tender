@@ -10,17 +10,24 @@ public class SaveManager : MonoBehaviour
         : Application.persistentDataPath;
     
     private SettingsData settings = new SettingsData();
-    private int currentSlot = 1;
+    
+    [Header("Settings")]
+    [SerializeField] private int currentSlot = 1;
     
     public SettingsData Settings => settings;
     public int CurrentSlot { get => currentSlot; set => currentSlot = value; }
     
+    // --- СОБЫТИЯ ---
     public event Action<int> OnSaveStarted;
     public event Action<int> OnSaveCompleted;
     public event Action<int> OnLoadStarted;
     public event Action<int> OnLoadCompleted;
     public event Action OnSettingsLoaded;
-    
+
+    // --- DEBUG DATA FOR INSPECTOR ---
+    [Header("Debug Tool")] 
+    public SaveData inspectorSaveData; 
+
     private void Awake()
     {
         if (!Directory.Exists(SavePath))
@@ -38,21 +45,23 @@ public class SaveManager : MonoBehaviour
             G.Audio.OnSettingsApplied += SaveSettings;
     }
     
+    // --- ОСНОВНАЯ ЛОГИКА ---
+    
     public void SaveGame(int slot)
     {
         OnSaveStarted?.Invoke(slot);
         
-        var storage = G.Dialogue?.VariableStorage as SaveVariableStorage;
-        if (storage == null)
-        {
-            Debug.LogError("SaveVariableStorage не найден!");
-            return;
-        }
+        var storage = GetStorage();
+        if (storage == null) return;
         
+        // Получаем актуальные данные
         var saveData = storage.GetSaveData();
         saveData.metadata.saveDate = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         saveData.metadata.playTime = Time.realtimeSinceStartup;
         
+        // Обновляем инспектор для удобства, чтобы видеть что сохранилось
+        inspectorSaveData = saveData; 
+
         string json = JsonUtility.ToJson(saveData, true);
         File.WriteAllText(GetSavePath(slot), json);
         
@@ -71,22 +80,86 @@ public class SaveManager : MonoBehaviour
         
         OnLoadStarted?.Invoke(slot);
         
-        var storage = G.Dialogue?.VariableStorage as SaveVariableStorage;
-        if (storage == null)
-        {
-            Debug.LogError("SaveVariableStorage не найден!");
-            return;
-        }
+        var storage = GetStorage();
+        if (storage == null) return;
         
         string json = File.ReadAllText(path);
         var saveData = JsonUtility.FromJson<SaveData>(json);
+        
         storage.LoadSaveData(saveData);
         currentSlot = slot;
+        
+        // Обновляем данные в инспекторе, чтобы видеть что загрузилось
+        inspectorSaveData = saveData;
         
         OnLoadCompleted?.Invoke(slot);
         Debug.Log($"✓ Loaded slot {slot}");
     }
+
+    // --- ИНСТРУМЕНТЫ ОТЛАДКИ (КОНТЕКСТНОЕ МЕНЮ) ---
+
+    [ContextMenu("Fetch Current Game State")]
+    public void DebugFetchFromGame()
+    {
+        var storage = GetStorage();
+        if (storage != null)
+        {
+            inspectorSaveData = storage.GetSaveData();
+            inspectorSaveData.metadata.playTime = Time.realtimeSinceStartup;
+            inspectorSaveData.metadata.saveDate = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            Debug.Log("Saved data fetched from Game to Inspector.");
+        }
+    }
+
+    [ContextMenu("Apply Inspector Data to Game")]
+    public void DebugApplyToGame()
+    {
+        var storage = GetStorage();
+        if (storage != null && inspectorSaveData != null)
+        {
+            storage.LoadSaveData(inspectorSaveData);
+            Debug.Log("Inspector data applied to Game Logic.");
+        }
+    }
+
+    [ContextMenu("Read File to Inspector (No Load)")]
+    public void DebugReadFile()
+    {
+        string path = GetSavePath(currentSlot);
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            inspectorSaveData = JsonUtility.FromJson<SaveData>(json);
+            Debug.Log($"File (Slot {currentSlot}) loaded into Inspector.");
+        }
+        else
+        {
+            Debug.LogWarning($"File for slot {currentSlot} not found.");
+        }
+    }
+
+    [ContextMenu("Write Inspector Data to File")]
+    public void DebugWriteFile()
+    {
+        if (inspectorSaveData == null) return;
+
+        // Обновляем мету перед записью
+        inspectorSaveData.metadata.saveDate = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        
+        string json = JsonUtility.ToJson(inspectorSaveData, true);
+        File.WriteAllText(GetSavePath(currentSlot), json);
+        Debug.Log($"Inspector data written to File (Slot {currentSlot}).");
+    }
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
     
+    private SaveVariableStorage GetStorage()
+    {
+        var storage = G.Dialogue?.VariableStorage as SaveVariableStorage;
+        if (storage == null) Debug.LogError("SaveVariableStorage не найден!");
+        return storage;
+    }
+
     public void SaveSettings()
     {
         if (G.Graphics != null)
@@ -97,7 +170,6 @@ public class SaveManager : MonoBehaviour
             settings.shadowCascades = G.Graphics.GetShadowCascades();
             settings.vSync = G.Graphics.GetVSync();
         }
-        
         
         if (G.Audio != null)
         {
@@ -135,7 +207,6 @@ public class SaveManager : MonoBehaviour
             }
         }
         
-        
         if (G.Audio != null)
         {
             G.Audio.LoadSettings(settings);
@@ -167,13 +238,7 @@ public class SaveManager : MonoBehaviour
     public bool SaveExists(int slot) => File.Exists(GetSavePath(slot));
     
     private string GetSavePath(int slot) => Path.Combine(SavePath, $"save{slot}.json");
-    
-    [ContextMenu("Force Save")]
-    private void DebugSave() { SaveGame(currentSlot); SaveSettings(); }
-    
-    [ContextMenu("Force Load")]
-    private void DebugLoad() { LoadGame(currentSlot); }
-    
+
     [ContextMenu("Reset All Saves")]
     private void DebugReset()
     {

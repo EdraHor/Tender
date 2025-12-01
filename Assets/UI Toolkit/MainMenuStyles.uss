@@ -281,3 +281,78 @@
     width: 18px;
     height: 18px;
 }
+
+/* === SAVE/LOAD SLOTS === */
+
+.save-list {
+    flex-grow: 1;
+    margin-right: -10px; /* Компенсация скроллбара */
+    padding-right: 15px;
+}
+
+/* Контейнер слота (Кнопка) */
+.save-slot-button {
+    width: 100%;
+    height: 70px;
+    margin-bottom: 8px;
+    background-color: rgb(15, 15, 20); /* Почти черный */
+    border-width: 1px;
+    border-color: rgb(60, 60, 60);     /* Темно-серый бордюр */
+    border-radius: 4px;
+
+    flex-direction: row;               /* Горизонтальная верстка внутри */
+    align-items: center;
+    justify-content: space-between;
+
+    padding-left: 20px;
+    padding-right: 20px;
+
+    transition-duration: 0.1s;
+    transition-property: border-color, background-color, scale;
+}
+
+/* Состояние наведения мыши или фокуса клавиатуры */
+.save-slot-button:hover,
+.save-slot-button:focus {
+    background-color: rgb(25, 25, 30);
+    border-color: rgb(255, 255, 255);  /* Яркая белая рамка при фокусе */
+    scale: 1.01;
+}
+
+/* Левая часть: Номер слота и Дата */
+.save-slot-info {
+    flex-direction: column;
+    justify-content: center;
+}
+
+.save-slot-title {
+    font-size: 18px;
+    color: rgb(240, 240, 240);
+    -unity-font-style: bold;
+}
+
+.save-slot-details {
+    font-size: 14px;
+    color: rgb(120, 120, 120); /* Серый текст для деталей */
+    margin-top: 2px;
+}
+
+/* Правая часть: Действие (Загрузить/Создать) */
+.save-slot-action {
+    font-size: 14px;
+    color: rgb(80, 80, 80);
+    -unity-font-style: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Когда слот активен, правый текст становится белым */
+.save-slot-button:hover .save-slot-action,
+.save-slot-button:focus .save-slot-action {
+    color: rgb(255, 255, 255);
+}
+
+/* Спец-стиль для пустых слотов */
+.save-slot-empty .save-slot-title {
+    color: rgb(100, 100, 100);
+}

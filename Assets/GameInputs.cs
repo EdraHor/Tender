@@ -112,6 +112,15 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Auto"",
+                    ""type"": ""Button"",
+                    ""id"": ""c46c5fd4-1716-4005-a717-6ab0a6a2cb38"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -222,6 +231,28 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""cd236e88-a877-49d2-819d-4afe4609a78d"",
+                    ""path"": ""<Keyboard>/leftShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Auto"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3983b94c-4767-4dff-9d88-9824bca455d5"",
+                    ""path"": ""<Gamepad>/dpad/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Auto"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -595,6 +626,7 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
         m_Dialogue_Continue = m_Dialogue.FindAction("Continue", throwIfNotFound: true);
         m_Dialogue_Skip = m_Dialogue.FindAction("Skip", throwIfNotFound: true);
         m_Dialogue_ChoiceNavigate = m_Dialogue.FindAction("ChoiceNavigate", throwIfNotFound: true);
+        m_Dialogue_Auto = m_Dialogue.FindAction("Auto", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Submit = m_UI.FindAction("Submit", throwIfNotFound: true);
@@ -731,6 +763,7 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
     private readonly InputAction m_Dialogue_Continue;
     private readonly InputAction m_Dialogue_Skip;
     private readonly InputAction m_Dialogue_ChoiceNavigate;
+    private readonly InputAction m_Dialogue_Auto;
     public struct DialogueActions
     {
         private @GameInputs m_Wrapper;
@@ -738,6 +771,7 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
         public InputAction @Continue => m_Wrapper.m_Dialogue_Continue;
         public InputAction @Skip => m_Wrapper.m_Dialogue_Skip;
         public InputAction @ChoiceNavigate => m_Wrapper.m_Dialogue_ChoiceNavigate;
+        public InputAction @Auto => m_Wrapper.m_Dialogue_Auto;
         public InputActionMap Get() { return m_Wrapper.m_Dialogue; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -756,6 +790,9 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
             @ChoiceNavigate.started += instance.OnChoiceNavigate;
             @ChoiceNavigate.performed += instance.OnChoiceNavigate;
             @ChoiceNavigate.canceled += instance.OnChoiceNavigate;
+            @Auto.started += instance.OnAuto;
+            @Auto.performed += instance.OnAuto;
+            @Auto.canceled += instance.OnAuto;
         }
 
         private void UnregisterCallbacks(IDialogueActions instance)
@@ -769,6 +806,9 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
             @ChoiceNavigate.started -= instance.OnChoiceNavigate;
             @ChoiceNavigate.performed -= instance.OnChoiceNavigate;
             @ChoiceNavigate.canceled -= instance.OnChoiceNavigate;
+            @Auto.started -= instance.OnAuto;
+            @Auto.performed -= instance.OnAuto;
+            @Auto.canceled -= instance.OnAuto;
         }
 
         public void RemoveCallbacks(IDialogueActions instance)
@@ -938,6 +978,7 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
         void OnContinue(InputAction.CallbackContext context);
         void OnSkip(InputAction.CallbackContext context);
         void OnChoiceNavigate(InputAction.CallbackContext context);
+        void OnAuto(InputAction.CallbackContext context);
     }
     public interface IUIActions
     {

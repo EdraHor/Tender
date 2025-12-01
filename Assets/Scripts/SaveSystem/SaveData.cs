@@ -1,6 +1,6 @@
-// SaveData.cs  
 using System;
 using System.Collections.Generic;
+using UnityEngine; // Добавлено для атрибутов Header/Tooltip
 
 [Serializable]
 public class SettingsData
@@ -35,9 +35,16 @@ public class SaveData
 [Serializable]
 public class YarnVariables
 {
-    public string[] floatKeys, stringKeys, boolKeys;
+    [Header("Floats")]
+    public string[] floatKeys;
     public float[] floatValues;
+    
+    [Header("Strings")]
+    public string[] stringKeys;
     public string[] stringValues;
+    
+    [Header("Booleans")]
+    public string[] boolKeys;
     public bool[] boolValues;
     
     public static YarnVariables FromDictionaries(
@@ -97,16 +104,25 @@ public class YarnVariables
         floats = new Dictionary<string, float>();
         if (floatKeys != null)
             for (int i = 0; i < floatKeys.Length; i++)
-                floats[floatKeys[i]] = floatValues[i];
+            {
+                if (i < floatValues.Length) // Защита от выхода за границы массива при ручном редактировании
+                    floats[floatKeys[i]] = floatValues[i];
+            }
             
         strings = new Dictionary<string, string>();
         if (stringKeys != null)
             for (int i = 0; i < stringKeys.Length; i++)
-                strings[stringKeys[i]] = stringValues[i];
+            {
+                if (i < stringValues.Length)
+                    strings[stringKeys[i]] = stringValues[i];
+            }
             
         bools = new Dictionary<string, bool>();
         if (boolKeys != null)
             for (int i = 0; i < boolKeys.Length; i++)
-                bools[boolKeys[i]] = boolValues[i];
+            {
+                if (i < boolValues.Length)
+                    bools[boolKeys[i]] = boolValues[i];
+            }
     }
 }

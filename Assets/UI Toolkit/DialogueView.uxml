@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI Toolkit/DialogueViewStyles.uss" />
+
+    <!-- Main Container -->
+    <ui:VisualElement name="DialogueContainer" class="dialogue-container">
+
+        <!-- Click Area for Continue -->
+        <ui:VisualElement name="ClickArea" class="click-area" />
+
+        <!-- Dialogue Box -->
+        <ui:VisualElement name="DialogueBox" class="dialogue-box">
+
+            <!-- Character Name -->
+            <ui:VisualElement name="CharacterNameContainer" class="character-name-container">
+                <ui:Label name="CharacterName" class="character-name" text="Character" />
+            </ui:VisualElement>
+
+            <!-- Dialogue Text -->
+            <ui:Label name="DialogueText" class="dialogue-text" text="Dialogue text will appear here..." />
+
+        </ui:VisualElement>
+
+        <!-- Options Container -->
+        <ui:VisualElement name="OptionsContainer" class="options-container">
+            <!-- Options will be added dynamically -->
+        </ui:VisualElement>
+
+        <!-- Bottom Controls -->
+        <ui:VisualElement name="BottomControls" class="bottom-controls">
+            <ui:Button name="HistoryButton" class="control-button" text="LOG" />
+            <ui:Button name="AutoButton" class="control-button" text="AUTO" />
+            <ui:Button name="SkipButton" class="control-button" text="SKIP" />
+        </ui:VisualElement>
+
+        <!-- History Panel -->
+        <ui:VisualElement name="HistoryPanel" class="history-panel hidden">
+            <ui:VisualElement class="history-header">
+                <ui:Label text="История диалогов" class="history-title" />
+                <ui:Button name="CloseHistoryButton" class="close-button" text="✕" />
+            </ui:VisualElement>
+            <ui:ScrollView name="HistoryScroll" class="history-scroll" />
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>
