@@ -1,0 +1,283 @@
+/* Цветовая схема (USS не поддерживает переменные, но можно использовать для документации) */
+/* Основные цвета:
+   --bg-dark: rgb(10, 10, 15)
+   --bg-panel: rgba(40, 40, 50, 0.8)
+   --text-primary: rgb(200, 200, 200)
+   --text-secondary: rgb(150, 150, 200)
+   --text-muted: rgb(120, 120, 120)
+   --border: rgb(80, 80, 90)
+   --focus: rgb(80, 120, 200)
+   --hover: rgba(60, 60, 80, 0.8)
+*/
+
+/* === LAYOUT === */
+.main-menu {
+    width: 100%;
+    height: 100%;
+    background-color: rgb(10, 10, 15);
+}
+
+.menu-container {
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+}
+
+.left-side {
+    width: 50%;
+    height: 100%;
+    padding: 60px 40px;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.right-side {
+    width: 50%;
+    height: 100%;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.character-image {
+    width: 100%;
+    height: 100%;
+    background-image: url('project://database/Assets/UI/Textures/MainCharacter.png');
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.menu-buttons {
+    width: 100%;
+}
+
+/* === BUTTONS === */
+.menu-button {
+    width: 100%;
+    height: 50px;
+    margin-bottom: 8px;
+    font-size: 28px;
+    background-color: transparent;
+    color: rgb(180, 180, 180);
+    border-width: 0;
+    -unity-text-align: middle-left;
+    padding-left: 20px;
+    transition-duration: 0.2s;
+}
+
+.menu-button.hovered,
+.menu-button:focus {
+    color: rgb(255, 255, 255);
+    padding-left: 40px;
+}
+
+.back-button {
+    margin-top: 20px;
+    color: rgb(150, 150, 150);
+}
+
+.tab-button {
+    height: 40px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: transparent;
+    color: rgb(120, 120, 120);
+    border-width: 0;
+    font-size: 20px;
+    -unity-text-align: middle-left;
+}
+
+.tab-button.hovered,
+.tab-button:focus {
+    color: rgb(180, 180, 180);
+}
+
+.tab-active {
+    color: rgb(255, 255, 255);
+    border-bottom-width: 2px;
+    border-color: rgb(255, 255, 255);
+}
+
+/* === PANELS === */
+.panel {
+    width: 100%;
+    height: 100%;
+}
+
+.hidden {
+    display: none;
+}
+
+.panel-title {
+    font-size: 32px;
+    margin-bottom: 30px;
+    color: rgb(200, 200, 200);
+    -unity-font-style: bold;
+}
+
+.save-list {
+    flex-grow: 1;
+    margin-bottom: 20px;
+}
+
+.placeholder {
+    color: rgb(120, 120, 120);
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+/* === TABS === */
+.tab-buttons {
+    flex-direction: row;
+    margin-bottom: 20px;
+    border-bottom-width: 1px;
+    border-color: rgb(60, 60, 60);
+}
+
+.tab-content {
+    flex-grow: 1;
+    overflow: hidden scroll;
+}
+
+.tab {
+    width: 100%;
+}
+
+/* === SETTINGS === */
+.section-label {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: rgb(150, 150, 150);
+    font-size: 16px;
+}
+
+.setting-row {
+    flex-direction: row;
+    margin-bottom: 15px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    transition-duration: 0.15s;
+    border-width: 2px;
+    border-color: transparent;
+}
+
+.setting-row:focus {
+    background-color: rgba(80, 120, 200, 0.3);
+    border-color: rgb(100, 150, 255);
+}
+
+.setting-label {
+    width: 200px;
+    font-size: 18px;
+    color: rgb(200, 200, 200);
+}
+
+.setting-control {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.setting-value {
+    flex-grow: 1;
+    font-size: 18px;
+    color: rgb(150, 150, 200);
+    -unity-text-align: middle-right;
+}
+
+.setting-disabled {
+    opacity: 0.4;
+}
+
+.setting-disabled Label {
+    color: rgb(100, 100, 100);
+}
+
+.settings-applied-label {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    translate: -50% 0;
+    padding: 15px 30px;
+    background-color: rgba(50, 200, 100, 0.9);
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+    border-radius: 8px;
+    -unity-font-style: bold;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+/* === DROPDOWN === */
+.simple-dropdown__label {
+    background-color: rgba(40, 40, 50, 0.8);
+    border-color: rgb(80, 80, 90);
+    border-width: 1px;
+    padding: 8px 12px;
+    color: rgb(220, 220, 220);
+    font-size: 16px;
+}
+
+.simple-dropdown__label:hover {
+    border-color: rgb(120, 120, 140);
+}
+
+.simple-dropdown:focus .simple-dropdown__label {
+    border-color: rgb(160, 160, 200);
+    background-color: rgba(60, 60, 80, 1);
+}
+
+.simple-dropdown__popup {
+    max-height: 200px;
+    background-color: rgb(25, 25, 35);
+    border-color: rgb(100, 100, 120);
+    border-width: 1px;
+    overflow: hidden scroll;
+    padding: 0;
+}
+
+/* Стили для кнопок в dropdown - упрощены благодаря C# коду */
+.simple-dropdown__item,
+.simple-dropdown__popup > .unity-button {
+    padding: 10px 12px;
+    margin: 0;
+    background-color: transparent;
+    color: rgb(200, 200, 200);
+    font-size: 16px;
+    -unity-text-align: middle-left;
+    transition-duration: 0.1s;
+    border-width: 0;
+    border-color: transparent;
+    border-radius: 0;
+}
+
+.simple-dropdown__item > .unity-text-element,
+.simple-dropdown__popup > .unity-button > .unity-text-element {
+    margin: 0;
+    padding: 0;
+}
+
+/* === SLIDER === */
+.unity-base-slider__tracker {
+    background-color: rgb(60, 60, 70);
+    height: 4px;
+    border-radius: 2px;
+}
+
+.unity-base-slider__dragger {
+    width: 16px;
+    height: 16px;
+    background-color: rgb(180, 180, 200);
+    border-radius: 8px;
+    border-width: 0;
+    transition-duration: 0.1s;
+}
+
+.unity-base-slider__dragger:hover {
+    background-color: rgb(220, 220, 240);
+}
+
+.unity-base-slider__dragger:active,
+.unity-base-slider__input:focus .unity-base-slider__dragger {
+    background-color: rgb(255, 255, 255);
+    width: 18px;
+    height: 18px;
+}

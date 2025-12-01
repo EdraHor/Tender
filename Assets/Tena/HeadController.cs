@@ -41,6 +41,8 @@ public class HeadController : MonoBehaviour
     private int indexLeft, indexRight, indexUp, indexDown;
     private float currentWeightLeft, currentWeightRight, currentWeightUp, currentWeightDown;
     private Vector3 targetVelocity;
+    private bool isLookingAtTarget;
+    private Vector3 fixedLookTarget;
     
     void Start()
     {
@@ -60,23 +62,20 @@ public class HeadController : MonoBehaviour
     
     void Update()
     {
-        Vector3 mouseWorld = GetMouseWorldPosition();
+        Vector3 lookPoint = isLookingAtTarget ? fixedLookTarget : GetMouseWorldPosition();
         
-        // Двигаем голову с ограничением скорости
+        // Двигаем голову
         if (lookMode != LookMode.EyesOnly && headTarget != null)
         {
-            // Вычисляем максимальное перемещение за кадр
             float maxDistance = maxHeadRotationSpeed * Mathf.Deg2Rad * Vector3.Distance(headBone.position, headTarget.position) * Time.deltaTime;
-            
-            // SmoothDamp для плавности + ограничение максимальной скорости
-            Vector3 newPos = Vector3.SmoothDamp(headTarget.position, mouseWorld, ref targetVelocity, 1f / headSpeed, maxDistance / Time.deltaTime);
+            Vector3 newPos = Vector3.SmoothDamp(headTarget.position, lookPoint, ref targetVelocity, 1f / headSpeed, maxDistance / Time.deltaTime);
             headTarget.position = newPos;
         }
         
-        // Считаем веса для blend shapes
+        // Blend shapes для глаз
         if (lookMode != LookMode.HeadOnly && faceMesh != null && headBone != null)
         {
-            Vector3 localDir = headBone.InverseTransformDirection((mouseWorld - headBone.position).normalized);
+            Vector3 localDir = headBone.InverseTransformDirection((lookPoint - headBone.position).normalized);
             
             float targetLeft = Mathf.Clamp(-localDir.x, 0, 1) * eyeIntensity;
             float targetRight = Mathf.Clamp(localDir.x, 0, 1) * eyeIntensity;
@@ -99,6 +98,17 @@ public class HeadController : MonoBehaviour
             if (indexUp >= 0) faceMesh.SetBlendShapeWeight(indexUp, currentWeightUp);
             if (indexDown >= 0) faceMesh.SetBlendShapeWeight(indexDown, currentWeightDown);
         }
+    }
+    
+    public void SetLookTarget(Vector3 worldPosition)
+    {
+        isLookingAtTarget = true;
+        fixedLookTarget = worldPosition;
+    }
+    
+    public void ResetToMouse()
+    {
+        isLookingAtTarget = false;
     }
     
     Vector3 GetMouseWorldPosition()

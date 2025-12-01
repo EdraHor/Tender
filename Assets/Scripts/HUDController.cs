@@ -5,11 +5,6 @@ public class HUDController : MonoBehaviour
 {
     public TextMeshProUGUI InteractDescText;
 
-    private void Awake()
-    {
-        G.HUDController = this;
-    }
-
     public void ShowInteractionDesc(string desc)
     {
         if (InteractDescText)

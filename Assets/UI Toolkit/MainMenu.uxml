@@ -1,0 +1,75 @@
+<engine:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:engine="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/MainMenuStyles.uss?fileID=7433441132597879392&amp;guid=7203b59cc8b99514bbe0313ee01c7c38&amp;type=3#MainMenuStyles" />
+    <engine:VisualElement name="MainMenu" class="main-menu" style="background-color: rgba(10, 10, 15, 0);">
+        <engine:VisualElement class="menu-container" style="background-color: rgb(0, 0, 0);">
+            <engine:VisualElement name="LeftSide" class="left-side">
+                <engine:VisualElement name="MenuButtons" class="menu-buttons">
+                    <engine:Button name="NewGameButton" text="Новая игра" class="menu-button" />
+                    <engine:Button name="LoadGameButton" text="Загрузить" class="menu-button" />
+                    <engine:Button name="SettingsButton" text="Настройки" class="menu-button" />
+                    <engine:Button name="ExitButton" text="Выход" class="menu-button" />
+                </engine:VisualElement>
+                <engine:VisualElement name="LoadGamePanel" class="panel hidden">
+                    <engine:Label text="// Сохранения" class="panel-title" />
+                    <engine:ScrollView name="SaveFilesList" class="save-list">
+                        <engine:Label text="[Нет сохранений]" class="placeholder" />
+                    </engine:ScrollView>
+                    <engine:Button name="BackFromLoadButton" text="← Назад" tabindex="-1" class="menu-button back-button" />
+                </engine:VisualElement>
+                <engine:VisualElement name="SettingsPanel" class="panel hidden">
+                    <engine:Label text="// Настройки" class="panel-title" />
+                    <engine:VisualElement name="TabButtons" class="tab-buttons">
+                        <engine:Button name="GraphicsTabButton" text="Графика" tabindex="-1" class="tab-button tab-active" />
+                        <engine:Button name="AudioTabButton" text="Звук" tabindex="-1" class="tab-button" />
+                    </engine:VisualElement>
+                    <engine:ScrollView name="TabContent" mode="Vertical" class="tab-content">
+                        <engine:VisualElement name="GraphicsTab" class="tab">
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Пресет качества:" class="setting-label" />
+                                <SimpleDropdown name="QualityPreset" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Качество теней:" class="setting-label" />
+                                <SimpleDropdown name="ShadowQuality" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Дальность теней:" class="setting-label" />
+                                <engine:Slider name="ShadowDistance" low-value="20" high-value="150" value="50" show-input-field="true" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Разрешение теней:" class="setting-label" />
+                                <SimpleDropdown name="ShadowResolution" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="VSync:" class="setting-label" />
+                                <engine:Toggle name="VSync" class="setting-control" />
+                            </engine:VisualElement>
+                        </engine:VisualElement>
+                        <engine:VisualElement name="AudioTab" class="tab hidden">
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Общая громкость:" class="setting-label" />
+                                <engine:Slider name="MasterVolume" low-value="0" high-value="100" value="100" show-input-field="true" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Музыка:" class="setting-label" />
+                                <engine:Slider name="MusicVolume" low-value="0" high-value="100" value="100" show-input-field="true" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Озвучка:" class="setting-label" />
+                                <engine:Slider name="VoiceVolume" low-value="0" high-value="100" value="100" show-input-field="true" class="setting-control" />
+                            </engine:VisualElement>
+                            <engine:VisualElement class="setting-row">
+                                <engine:Label text="Эффекты:" class="setting-label" />
+                                <engine:Slider name="SFXVolume" low-value="0" high-value="100" value="100" show-input-field="true" class="setting-control" />
+                            </engine:VisualElement>
+                        </engine:VisualElement>
+                    </engine:ScrollView>
+                    <engine:Button name="BackFromSettingsButton" text="← Назад" tabindex="-1" class="menu-button back-button" />
+                </engine:VisualElement>
+            </engine:VisualElement>
+            <engine:VisualElement name="RightSide" class="right-side">
+                <engine:VisualElement name="CharacterImage" class="character-image" />
+            </engine:VisualElement>
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>
