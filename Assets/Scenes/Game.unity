@@ -850,7 +850,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 436015934}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5aeed3f7429b76e4e8f447eeef2ae38b, type: 3}
   m_Name: 
@@ -1635,6 +1635,7 @@ MonoBehaviour:
   useTypewriter: 1
   charactersPerSecond: 40
   autoAdvanceDelay: 2
+  showControlButtons: 1
 --- !u!114 &1287320474
 MonoBehaviour:
   m_ObjectHideFlags: 0

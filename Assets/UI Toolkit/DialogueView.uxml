@@ -10,9 +10,16 @@
         <!-- Dialogue Box -->
         <ui:VisualElement name="DialogueBox" class="dialogue-box">
 
-            <!-- Character Name -->
+            <!-- Character Name (top left, inside box) -->
             <ui:VisualElement name="CharacterNameContainer" class="character-name-container">
-                <ui:Label name="CharacterName" class="character-name" text="Character" />
+                <ui:Label name="CharacterName" class="character-name" text="Alan" />
+            </ui:VisualElement>
+
+            <!-- Bottom Controls (top right, inside box) -->
+            <ui:VisualElement name="BottomControls" class="bottom-controls">
+                <ui:Button name="HistoryButton" class="control-button" text="LOG" focusable="false" />
+                <ui:Button name="AutoButton" class="control-button" text="AUTO" focusable="false" />
+                <ui:Button name="SkipButton" class="control-button" text="SKIP" focusable="false" />
             </ui:VisualElement>
 
             <!-- Dialogue Text -->
@@ -23,13 +30,6 @@
         <!-- Options Container -->
         <ui:VisualElement name="OptionsContainer" class="options-container">
             <!-- Options will be added dynamically -->
-        </ui:VisualElement>
-
-        <!-- Bottom Controls -->
-        <ui:VisualElement name="BottomControls" class="bottom-controls">
-            <ui:Button name="HistoryButton" class="control-button" text="LOG" />
-            <ui:Button name="AutoButton" class="control-button" text="AUTO" />
-            <ui:Button name="SkipButton" class="control-button" text="SKIP" />
         </ui:VisualElement>
 
         <!-- History Panel -->

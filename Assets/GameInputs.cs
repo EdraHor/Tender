@@ -87,9 +87,27 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
             ""id"": ""d5fe3079-a4fa-440a-be12-d361ec9f4c5b"",
             ""actions"": [
                 {
+                    ""name"": ""Submit"",
+                    ""type"": ""Button"",
+                    ""id"": ""af624041-2d5b-4713-b33c-631dc27a5f3a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""Continue"",
                     ""type"": ""Button"",
                     ""id"": ""57bfece6-4d8a-4f93-91f5-f7ae03603ff1"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ForceContinue"",
+                    ""type"": ""Button"",
+                    ""id"": ""11b4cf11-90cf-47ee-8860-7816b581e547"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -121,6 +139,15 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Log"",
+                    ""type"": ""Button"",
+                    ""id"": ""96a6005f-abdd-43e7-a624-6a18a7bd1a3c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -137,12 +164,34 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""98c11004-2a5f-48af-b602-23811ade7fa9"",
+                    ""id"": ""c18972f7-0fd5-4b58-89de-2995de8ed4a6"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Continue"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""79e9ea51-900e-4ab9-8a27-79dd8ec35642"",
                     ""path"": ""<Keyboard>/enter"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Continue"",
+                    ""action"": ""Submit"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e869c306-eba2-4281-a629-8c03c81e6182"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Submit"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -153,6 +202,17 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Skip"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b8085480-4ab2-4698-8dd9-7a0a2ba7a056"",
+                    ""path"": ""<Gamepad>/leftStickPress"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
                     ""action"": ""Skip"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -224,15 +284,70 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": true
                 },
                 {
-                    ""name"": """",
-                    ""id"": ""c23a7b7b-c7e5-4f86-8d70-16b46eb390e1"",
-                    ""path"": ""<Gamepad>/leftStick/y"",
+                    ""name"": ""DPad"",
+                    ""id"": ""2ef50110-49ea-4b0c-88c3-b5ae7661a0c4"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""f4220d1b-6983-422b-87db-bc1c6c38127b"",
+                    ""path"": ""<Gamepad>/dpad/down"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""ChoiceNavigate"",
                     ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""36f33035-059f-4c1c-8801-bf86e668b72f"",
+                    ""path"": ""<Gamepad>/dpad/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""LeftStick"",
+                    ""id"": ""38f44925-0ba0-4b57-b054-0f79948470e0"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": true,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""dd5c8c3b-6625-406e-b1b1-70f87e6498ed"",
+                    ""path"": ""<Gamepad>/leftStick/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""72932f5e-d461-4937-963f-7205fda3b4d9"",
+                    ""path"": ""<Gamepad>/leftStick/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChoiceNavigate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
                 },
                 {
                     ""name"": """",
@@ -248,11 +363,55 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""3983b94c-4767-4dff-9d88-9824bca455d5"",
-                    ""path"": ""<Gamepad>/dpad/down"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Gamepad"",
                     ""action"": ""Auto"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""226ef8c6-aeb6-47e9-be19-2bfa4549eb44"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Log"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""db0e140e-9707-495b-85db-1ef066ecc550"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Log"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2eb27fd5-ccef-4314-8a9d-c0c5f49f5da1"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""ForceContinue"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4c0cecda-56dc-4dbd-9fd3-90b002eef3bf"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""ForceContinue"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -623,10 +782,13 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
         m_Player_Point = m_Player.FindAction("Point", throwIfNotFound: true);
         // Dialogue
         m_Dialogue = asset.FindActionMap("Dialogue", throwIfNotFound: true);
+        m_Dialogue_Submit = m_Dialogue.FindAction("Submit", throwIfNotFound: true);
         m_Dialogue_Continue = m_Dialogue.FindAction("Continue", throwIfNotFound: true);
+        m_Dialogue_ForceContinue = m_Dialogue.FindAction("ForceContinue", throwIfNotFound: true);
         m_Dialogue_Skip = m_Dialogue.FindAction("Skip", throwIfNotFound: true);
         m_Dialogue_ChoiceNavigate = m_Dialogue.FindAction("ChoiceNavigate", throwIfNotFound: true);
         m_Dialogue_Auto = m_Dialogue.FindAction("Auto", throwIfNotFound: true);
+        m_Dialogue_Log = m_Dialogue.FindAction("Log", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Submit = m_UI.FindAction("Submit", throwIfNotFound: true);
@@ -760,18 +922,24 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
     // Dialogue
     private readonly InputActionMap m_Dialogue;
     private List<IDialogueActions> m_DialogueActionsCallbackInterfaces = new List<IDialogueActions>();
+    private readonly InputAction m_Dialogue_Submit;
     private readonly InputAction m_Dialogue_Continue;
+    private readonly InputAction m_Dialogue_ForceContinue;
     private readonly InputAction m_Dialogue_Skip;
     private readonly InputAction m_Dialogue_ChoiceNavigate;
     private readonly InputAction m_Dialogue_Auto;
+    private readonly InputAction m_Dialogue_Log;
     public struct DialogueActions
     {
         private @GameInputs m_Wrapper;
         public DialogueActions(@GameInputs wrapper) { m_Wrapper = wrapper; }
+        public InputAction @Submit => m_Wrapper.m_Dialogue_Submit;
         public InputAction @Continue => m_Wrapper.m_Dialogue_Continue;
+        public InputAction @ForceContinue => m_Wrapper.m_Dialogue_ForceContinue;
         public InputAction @Skip => m_Wrapper.m_Dialogue_Skip;
         public InputAction @ChoiceNavigate => m_Wrapper.m_Dialogue_ChoiceNavigate;
         public InputAction @Auto => m_Wrapper.m_Dialogue_Auto;
+        public InputAction @Log => m_Wrapper.m_Dialogue_Log;
         public InputActionMap Get() { return m_Wrapper.m_Dialogue; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -781,9 +949,15 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_DialogueActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_DialogueActionsCallbackInterfaces.Add(instance);
+            @Submit.started += instance.OnSubmit;
+            @Submit.performed += instance.OnSubmit;
+            @Submit.canceled += instance.OnSubmit;
             @Continue.started += instance.OnContinue;
             @Continue.performed += instance.OnContinue;
             @Continue.canceled += instance.OnContinue;
+            @ForceContinue.started += instance.OnForceContinue;
+            @ForceContinue.performed += instance.OnForceContinue;
+            @ForceContinue.canceled += instance.OnForceContinue;
             @Skip.started += instance.OnSkip;
             @Skip.performed += instance.OnSkip;
             @Skip.canceled += instance.OnSkip;
@@ -793,13 +967,22 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
             @Auto.started += instance.OnAuto;
             @Auto.performed += instance.OnAuto;
             @Auto.canceled += instance.OnAuto;
+            @Log.started += instance.OnLog;
+            @Log.performed += instance.OnLog;
+            @Log.canceled += instance.OnLog;
         }
 
         private void UnregisterCallbacks(IDialogueActions instance)
         {
+            @Submit.started -= instance.OnSubmit;
+            @Submit.performed -= instance.OnSubmit;
+            @Submit.canceled -= instance.OnSubmit;
             @Continue.started -= instance.OnContinue;
             @Continue.performed -= instance.OnContinue;
             @Continue.canceled -= instance.OnContinue;
+            @ForceContinue.started -= instance.OnForceContinue;
+            @ForceContinue.performed -= instance.OnForceContinue;
+            @ForceContinue.canceled -= instance.OnForceContinue;
             @Skip.started -= instance.OnSkip;
             @Skip.performed -= instance.OnSkip;
             @Skip.canceled -= instance.OnSkip;
@@ -809,6 +992,9 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
             @Auto.started -= instance.OnAuto;
             @Auto.performed -= instance.OnAuto;
             @Auto.canceled -= instance.OnAuto;
+            @Log.started -= instance.OnLog;
+            @Log.performed -= instance.OnLog;
+            @Log.canceled -= instance.OnLog;
         }
 
         public void RemoveCallbacks(IDialogueActions instance)
@@ -975,10 +1161,13 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
     }
     public interface IDialogueActions
     {
+        void OnSubmit(InputAction.CallbackContext context);
         void OnContinue(InputAction.CallbackContext context);
+        void OnForceContinue(InputAction.CallbackContext context);
         void OnSkip(InputAction.CallbackContext context);
         void OnChoiceNavigate(InputAction.CallbackContext context);
         void OnAuto(InputAction.CallbackContext context);
+        void OnLog(InputAction.CallbackContext context);
     }
     public interface IUIActions
     {

@@ -14,6 +14,7 @@ public class DialogueView : DialoguePresenterBase
     [SerializeField] private bool useTypewriter = true;
     [SerializeField] private int charactersPerSecond = 40;
     [SerializeField] private float autoAdvanceDelay = 2f;
+    [SerializeField] private bool showControlButtons = true;
     
     private VisualElement root;
     private VisualElement dialogueBox;
@@ -35,6 +36,7 @@ public class DialogueView : DialoguePresenterBase
     private bool isAutoMode = false;
     private bool isSkipping = false;
     private bool isLineComplete = false;
+    private bool isFirstLine = true;
     private int currentVisibleChars = 0;
     
     private CancellationTokenSource typewriterCTS;
@@ -43,6 +45,10 @@ public class DialogueView : DialoguePresenterBase
     private YarnTaskCompletionSource<DialogueOption?> optionCompletionSource;
     private int selectedOptionIndex = 0;
     private List<Button> optionButtons = new List<Button>();
+    
+    private float lastNavigationTime = 0f;
+    private const float navigationCooldown = 0.2f;
+    private const float navigateThreshold = 0.5f;
     
     private struct HistoryEntry
     {
@@ -82,8 +88,19 @@ public class DialogueView : DialoguePresenterBase
         skipButton = root.Q<Button>("SkipButton");
         closeHistoryButton = root.Q<Button>("CloseHistoryButton");
         
-        // Click area для продолжения
+        // Click area для продолжения - на пустом пространстве и на самом окне
         clickArea.RegisterCallback<ClickEvent>(evt => OnContinueRequested());
+        
+        // Добавить клик на диалоговое окно
+        dialogueBox.RegisterCallback<ClickEvent>(evt => 
+        {
+            // Проверить что клик не был на кнопках
+            if (evt.target == dialogueBox || evt.target == dialogueTextLabel || 
+                evt.target == characterNameLabel || evt.target == characterNameContainer)
+            {
+                OnContinueRequested();
+            }
+        });
         
         // Кнопки управления
         historyButton.clicked += ToggleHistory;
@@ -101,9 +118,12 @@ public class DialogueView : DialoguePresenterBase
         if (input == null) return;
         
         input.Dialogue.Continue.performed += ctx => OnContinueRequested();
+        input.Dialogue.ForceContinue.performed += ctx => OnForceContinueRequested();
         input.Dialogue.Skip.performed += ctx => ToggleSkip();
         input.Dialogue.Auto.performed += ctx => ToggleAuto();
-        input.Dialogue.ChoiceNavigate.performed += ctx => NavigateOptions((int)ctx.ReadValue<float>());
+        input.Dialogue.Log.performed += ctx => ToggleHistory();
+        input.Dialogue.ChoiceNavigate.performed += ctx => OnNavigateInput(ctx.ReadValue<float>());
+        input.Dialogue.Submit.performed += ctx => ConfirmSelectedOption();
     }
     
     private void OnDestroy()
@@ -114,9 +134,25 @@ public class DialogueView : DialoguePresenterBase
         if (input != null)
         {
             input.Dialogue.Continue.performed -= ctx => OnContinueRequested();
+            input.Dialogue.ForceContinue.performed -= ctx => OnForceContinueRequested();
             input.Dialogue.Skip.performed -= ctx => ToggleSkip();
             input.Dialogue.Auto.performed -= ctx => ToggleAuto();
-            input.Dialogue.ChoiceNavigate.performed -= ctx => NavigateOptions((int)ctx.ReadValue<float>());
+            input.Dialogue.Log.performed -= ctx => ToggleHistory();
+            input.Dialogue.ChoiceNavigate.performed -= ctx => OnNavigateInput(ctx.ReadValue<float>());
+            input.Dialogue.Submit.performed -= ctx => ConfirmSelectedOption();
+        }
+    }
+    
+    private void OnNavigateInput(float value)
+    {
+        // Этот метод теперь работает для первого срабатывания
+        // Update() обрабатывает удержание
+        bool isOutsideDeadzone = Mathf.Abs(value) >= navigateThreshold;
+        
+        if (isOutsideDeadzone && Time.time - lastNavigationTime >= navigationCooldown)
+        {
+            int direction = value > 0 ? 1 : -1;
+            NavigateOptions(direction);
         }
     }
     
@@ -124,17 +160,42 @@ public class DialogueView : DialoguePresenterBase
     {
         G.Input?.EnableDialogue();
         HideAll();
+        isFirstLine = true; // Сбросить флаг для fade in первой реплики
         return YarnTask.CompletedTask;
     }
     
-    public override YarnTask OnDialogueCompleteAsync()
+    private void Update()
+    {
+        // Постоянная проверка удержания навигации для опций
+        if (optionButtons.Count > 0 && G.Input != null)
+        {
+            float value = G.Input.Dialogue.ChoiceNavigate.ReadValue<float>();
+            
+            if (Mathf.Abs(value) >= navigateThreshold)
+            {
+                if (Time.time - lastNavigationTime >= navigationCooldown)
+                {
+                    int direction = value > 0 ? 1 : -1;
+                    NavigateOptions(direction);
+                }
+            }
+        }
+    }
+    
+    public override async YarnTask OnDialogueCompleteAsync()
     {
         G.Input?.EnablePlayer();
+        
+        // Fade out только при завершении всего диалога
+        if (useFadeEffect && dialogueBox != null && dialogueBox.style.display == DisplayStyle.Flex)
+        {
+            await FadeOut(dialogueBox, default);
+        }
+        
         HideAll();
         isAutoMode = false;
         isSkipping = false;
         UpdateButtonStates();
-        return YarnTask.CompletedTask;
     }
     
     public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
@@ -145,7 +206,16 @@ public class DialogueView : DialoguePresenterBase
         
         // Настройка UI
         var text = line.TextWithoutCharacterName;
-        dialogueTextLabel.text = text.Text;
+        
+        // Не устанавливаем текст сразу если включен typewriter
+        if (!useTypewriter || isSkipping)
+        {
+            dialogueTextLabel.text = text.Text;
+        }
+        else
+        {
+            dialogueTextLabel.text = "";
+        }
         
         if (!string.IsNullOrEmpty(line.CharacterName))
         {
@@ -160,11 +230,14 @@ public class DialogueView : DialoguePresenterBase
         // Показываем диалоговое окно
         optionsContainer.style.display = DisplayStyle.None;
         dialogueBox.style.display = DisplayStyle.Flex;
-        bottomControls.style.display = DisplayStyle.Flex;
+        bottomControls.style.display = showControlButtons ? DisplayStyle.Flex : DisplayStyle.None;
         
-        // Fade in
-        if (useFadeEffect)
+        // Fade in только для первой реплики
+        if (useFadeEffect && isFirstLine)
+        {
             await FadeIn(dialogueBox, token.HurryUpToken);
+            isFirstLine = false;
+        }
         
         // Typewriter эффект
         if (useTypewriter && !isSkipping)
@@ -195,9 +268,8 @@ public class DialogueView : DialoguePresenterBase
             await YarnTask.WaitUntilCanceled(token.NextLineToken).SuppressCancellationThrow();
         }
         
-        // Fade out
-        if (useFadeEffect && !isSkipping)
-            await FadeOut(dialogueBox, token.HurryUpToken).SuppressCancellationThrow();
+        // Не делаем fade out между репликами, чтобы окно не мигало
+        // Fade out только при завершении диалога в OnDialogueCompleteAsync
     }
     
     public override async YarnTask<DialogueOption?> RunOptionsAsync(DialogueOption[] dialogueOptions, CancellationToken cancellationToken)
@@ -208,6 +280,7 @@ public class DialogueView : DialoguePresenterBase
         optionsContainer.Clear();
         optionButtons.Clear();
         selectedOptionIndex = 0;
+        lastNavigationTime = 0f; // Сбросить cooldown для новых опций
         
         currentDialogueOptions = dialogueOptions;
         optionCompletionSource = new YarnTaskCompletionSource<DialogueOption?>();
@@ -219,6 +292,7 @@ public class DialogueView : DialoguePresenterBase
             var button = new Button();
             button.AddToClassList("option-button");
             button.text = option.Line.Text.Text;
+            button.focusable = false; // Отключить keyboard focus
             
             if (!option.IsAvailable)
                 button.AddToClassList("unavailable");
@@ -226,11 +300,23 @@ public class DialogueView : DialoguePresenterBase
             var index = i;
             button.clicked += () => OnOptionSelected(index);
             
+            // При наведении мышки - сбросить keyboard selection и подсветить этот
+            button.RegisterCallback<MouseEnterEvent>(evt => 
+            {
+                // Убрать выделение со всех
+                foreach (var btn in optionButtons)
+                    btn.RemoveFromClassList("selected");
+                
+                // Подсветить текущий
+                button.AddToClassList("selected");
+                selectedOptionIndex = index;
+            });
+            
             optionsContainer.Add(button);
             optionButtons.Add(button);
         }
         
-        // Выделить первую опцию
+        // Выделить первую опцию по умолчанию
         if (optionButtons.Count > 0)
             optionButtons[0].AddToClassList("selected");
         
@@ -274,6 +360,32 @@ public class DialogueView : DialoguePresenterBase
         }
     }
     
+    private void OnForceContinueRequested()
+    {
+        if (historyPanel.ClassListContains("hidden") == false)
+            return;
+        
+        if (dialogueRunner == null)
+        {
+            Debug.LogError("[DialogueView] DialogueRunner не назначен!");
+            return;
+        }
+        
+        // Если текст еще выводится - пропустить анимацию, но не переходить дальше
+        if (!isLineComplete && useTypewriter)
+        {
+            typewriterCTS?.Cancel();
+            dialogueTextLabel.text = currentLine?.TextWithoutCharacterName.Text ?? "";
+            isLineComplete = true;
+            dialogueRunner.RequestHurryUpLine();
+        }
+        else if (isLineComplete)
+        {
+            // Если текст уже полностью выведен - перейти к следующей строке
+            dialogueRunner.RequestNextLine();
+        }
+    }
+    
     private void OnOptionSelected(int index)
     {
         if (index < 0 || index >= optionButtons.Count)
@@ -293,8 +405,16 @@ public class DialogueView : DialoguePresenterBase
     {
         if (optionButtons.Count == 0)
             return;
-            
-        optionButtons[selectedOptionIndex].RemoveFromClassList("selected");
+        
+        // Cooldown для предотвращения дерганья со стика
+        if (Time.time - lastNavigationTime < navigationCooldown)
+            return;
+        
+        lastNavigationTime = Time.time;
+        
+        // Убрать выделение со всех кнопок
+        foreach (var btn in optionButtons)
+            btn.RemoveFromClassList("selected");
         
         selectedOptionIndex += direction;
         if (selectedOptionIndex < 0)
@@ -303,10 +423,14 @@ public class DialogueView : DialoguePresenterBase
             selectedOptionIndex = 0;
             
         optionButtons[selectedOptionIndex].AddToClassList("selected");
-        
-        // Автоматически выбрать если нажали на выделенной опции
-        if (direction == 0)
-            OnOptionSelected(selectedOptionIndex);
+    }
+    
+    private void ConfirmSelectedOption()
+    {
+        if (optionButtons.Count == 0)
+            return;
+            
+        OnOptionSelected(selectedOptionIndex);
     }
     
     private async YarnTask TypewriterEffect(string text, CancellationToken ct)
@@ -380,6 +504,24 @@ public class DialogueView : DialoguePresenterBase
     {
         isSkipping = !isSkipping;
         UpdateButtonStates();
+        
+        if (isSkipping)
+        {
+            // Если текст еще выводится - пропустить анимацию
+            if (!isLineComplete && useTypewriter && currentLine != null)
+            {
+                typewriterCTS?.Cancel();
+                dialogueTextLabel.text = currentLine.TextWithoutCharacterName.Text;
+                isLineComplete = true;
+                if (dialogueRunner != null)
+                    dialogueRunner.RequestHurryUpLine();
+            }
+            // Если текст уже полностью выведен - сразу перейти к следующей реплике
+            else if (isLineComplete && dialogueRunner != null)
+            {
+                dialogueRunner.RequestNextLine();
+            }
+        }
     }
     
     private void UpdateButtonStates()
@@ -436,6 +578,7 @@ public class DialogueView : DialoguePresenterBase
         if (dialogueBox != null) dialogueBox.style.display = DisplayStyle.None;
         if (optionsContainer != null) optionsContainer.style.display = DisplayStyle.None;
         if (bottomControls != null) bottomControls.style.display = DisplayStyle.None;
+        if (characterNameContainer != null) characterNameContainer.style.display = DisplayStyle.None;
         if (historyPanel != null) historyPanel.AddToClassList("hidden");
     }
 }
