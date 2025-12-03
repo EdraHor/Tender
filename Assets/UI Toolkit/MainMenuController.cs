@@ -25,11 +25,16 @@ public class MainMenuController : MonoBehaviour
     private VisualElement _root;
     private string _currentPanel = PANEL_MENU;
     private bool _isNewGameMode; // True = Выбор слота для новой игры, False = Загрузка
-    private bool _mouseJustMoved;
     
     // Helpers
     private Coroutine _fadeCoroutine;
     private Label _settingsAppliedLabel;
+    
+    // Трекер для keyboard/mouse режимов с корректной отпиской
+    private UINavigationHelper.InputModeTracker _inputModeTracker;
+    
+    // Callback для dropdown изоляции (нужно отписаться в OnDisable)
+    private EventCallback<NavigationMoveEvent> _dropdownIsolationCallback;
 
     #region LIFECYCLE
 
@@ -62,9 +67,19 @@ public class MainMenuController : MonoBehaviour
 
     private void OnDisable()
     {
+        // Отписка от событий (предотвращает утечку памяти)
         if (G.Graphics != null) G.Graphics.OnSettingsApplied -= ShowSettingsAppliedMessage;
         if (G.Audio != null) G.Audio.OnSettingsApplied -= ShowSettingsAppliedMessage;
         if (G.Save != null) G.Save.OnSettingsLoaded -= RefreshAllSettingsUI;
+        
+        // Отписка от keyboard/mouse обработчиков
+        _inputModeTracker?.Dispose();
+        
+        // Отписка от dropdown изоляции
+        if (_dropdownIsolationCallback != null && _root != null)
+        {
+            _root.UnregisterCallback(_dropdownIsolationCallback, TrickleDown.TrickleDown);
+        }
     }
 
     private void Update()
@@ -206,9 +221,6 @@ public class MainMenuController : MonoBehaviour
         btn.Add(infoContainer);
         btn.Add(actionLabel);
 
-        // Добавляем поддержку мыши/клавиатуры (Hover эффект)
-        RegisterHoverEvents(btn);
-
         return btn;
     }
 
@@ -296,12 +308,9 @@ public class MainMenuController : MonoBehaviour
 
     private void SetupInputHandling()
     {
-        // Определяем режим ввода (Клавиатура vs Мышь)
-        _root.RegisterCallback<NavigationMoveEvent>(evt => SwitchToKeyboardMode(), TrickleDown.TrickleDown);
-        _root.RegisterCallback<MouseMoveEvent>(evt => SwitchToMouseMode(), TrickleDown.TrickleDown);
-
-        // Регистрация Hover для статических кнопок
-        _root.Query<Button>().ForEach(RegisterHoverEvents);
+        // Используем InputModeTracker для управления keyboard/mouse режимами
+        _inputModeTracker = new UINavigationHelper.InputModeTracker();
+        _inputModeTracker.Initialize(_root);
         
         // Блокировка фокуса на слайдерах мышью (чтобы фокус оставался на строке)
         _root.Query<Slider>().ForEach(s => s.focusable = false);
@@ -311,52 +320,9 @@ public class MainMenuController : MonoBehaviour
         SetupDropdownIsolation();
     }
 
-    private void RegisterHoverEvents(Button btn)
-    {
-        btn.RegisterCallback<MouseEnterEvent>(evt => {
-            if (_root.ClassListContains("keyboard-mode") && !_mouseJustMoved) return;
-            
-            // Если мышь двинулась - сбрасываем режим клавиатуры
-            if (_mouseJustMoved && _root.ClassListContains("keyboard-mode"))
-                SwitchToMouseMode();
-
-            // Визуальный hover для мыши
-            (evt.target as Button)?.AddToClassList("hovered");
-        });
-
-        btn.RegisterCallback<MouseLeaveEvent>(evt => {
-            (evt.target as Button)?.RemoveFromClassList("hovered");
-        });
-    }
-
-    private void SwitchToKeyboardMode()
-    {
-        if (!_root.ClassListContains("keyboard-mode"))
-        {
-            _root.AddToClassList("keyboard-mode");
-            _mouseJustMoved = false;
-            _root.Query<Button>().ForEach(btn => btn.RemoveFromClassList("hovered"));
-        }
-    }
-
-    private void SwitchToMouseMode()
-    {
-        _mouseJustMoved = true;
-        if (_root.ClassListContains("keyboard-mode"))
-        {
-            _root.RemoveFromClassList("keyboard-mode");
-            // Снимаем фокус с кнопок, чтобы не висел "двойной выбор"
-            var focused = _root.focusController?.focusedElement;
-            if (focused is Button) focused.Blur();
-        }
-    }
-
     #endregion
 
     #region SETTINGS IMPLEMENTATION (Graphics/Audio)
-    
-    // Этот код я свернул для читаемости, так как он не менялся логически,
-    // но он необходим для работы.
     
     private void SetupSettingsUI()
     {
@@ -540,29 +506,25 @@ public class MainMenuController : MonoBehaviour
 
     private void SetupDropdownIsolation()
     {
-        _root.RegisterCallback<NavigationMoveEvent>(evt => {
-            // Добавляем .ToList(), чтобы превратить UQueryBuilder в List,
-            // у которого есть FirstOrDefault()
-            var openDd = _root.Query<SimpleDropdown>()
-                .Where(d => d.IsOpen)
-                .ToList() 
-                .FirstOrDefault();
+        // Сохраняем callback, чтобы отписаться в OnDisable
+        _dropdownIsolationCallback = evt => {
+            // Убрали .ToList() - используем FirstOrDefault напрямую
+            var openDd = _root.Query<SimpleDropdown>().Where(d => d.IsOpen).First();
             
             if (openDd != null && (evt.target as VisualElement)?.parent?.ClassListContains("simple-dropdown__popup") != true)
             {
                 evt.PreventDefault(); 
                 evt.StopPropagation();
             }
-        }, TrickleDown.TrickleDown);
+        };
+        
+        _root.RegisterCallback(_dropdownIsolationCallback, TrickleDown.TrickleDown);
     }
 
     private bool TryCloseDropdown()
     {
-        // Аналогично добавляем .ToList()
-        var openDd = _root.Query<SimpleDropdown>()
-            .Where(d => d.IsOpen)
-            .ToList()
-            .FirstOrDefault();
+        // Убрали .ToList() - используем FirstOrDefault напрямую
+        var openDd = _root.Query<SimpleDropdown>().Where(d => d.IsOpen).First();
         
         if (openDd != null) 
         { 

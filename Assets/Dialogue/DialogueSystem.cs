@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using Yarn.Unity;
 
@@ -7,35 +8,64 @@ public class DialogueSystem : MonoBehaviour
     [SerializeField] private string startNode = "Start";
     [SerializeField] private bool playOnStart = true;
     
-    private SaveVariableStorage saveStorage;
+    private SaveVariableStorage _saveStorage;
     
-    void Awake()
+    private void Awake()
     {
-        saveStorage = GetComponent<SaveVariableStorage>();
-        if (saveStorage == null)
+        _saveStorage = GetComponent<SaveVariableStorage>();
+        if (_saveStorage == null)
         {
-            saveStorage = gameObject.AddComponent<SaveVariableStorage>();
-            Debug.Log("[DialogueSystem] SaveVariableStorage добавлен автоматически");
+            _saveStorage = gameObject.AddComponent<SaveVariableStorage>();
+            Debug.Log("[DialogueSystem] SaveVariableStorage added automatically");
         }
     }
     
-    void Start()
+    private void Start()
     {
         if (playOnStart)
             StartDialogue();
     }
     
-    public void StartDialogue(string node = null)
+    public void StartDialogue(string? node = null)
     {
         if (dialogueRunner.IsDialogueRunning)
         {
-            Debug.Log("Диалог уже запущен");
+            Debug.Log("[DialogueSystem] Dialogue already running");
             return;
         }
 
-        var nodeToStart = node ?? startNode;
-        dialogueRunner.StartDialogue(nodeToStart);
+        dialogueRunner.StartDialogue(node ?? startNode);
     }
     
-    public VariableStorageBehaviour VariableStorage => saveStorage;
+    [YarnCommand("SetEmotion")]
+    public static void SetEmotion(string characterId, string emotion)
+    {
+        Debug.Log($"[DialogueSystem] Character '{characterId}' emotion: {emotion}");
+        // TODO: Найти персонажа и установить эмоцию
+        // var character = FindObjectOfType<CharacterManager>()?.GetCharacter(characterId);
+        // character?.SetEmotion(emotion);
+    }
+    
+    [YarnCommand("Wait")]
+    public static IEnumerator Wait(float seconds)
+    {
+        Debug.Log($"[DialogueSystem] Waiting {seconds} seconds...");
+        yield return new WaitForSeconds(seconds);
+    }
+    
+    [YarnCommand("PlayAnimation")]
+    public static void PlayAnimation(string animationName)
+    {
+        Debug.Log($"[DialogueSystem] Playing animation: {animationName}");
+        // TODO: Воспроизвести анимацию
+    }
+    
+    [YarnCommand("MoveCharacter")]
+    public static void MoveCharacter(string characterId, string targetPosition)
+    {
+        Debug.Log($"[DialogueSystem] Moving '{characterId}' to '{targetPosition}'");
+        // TODO: Переместить персонажа
+    }
+    
+    public VariableStorageBehaviour VariableStorage => _saveStorage;
 }

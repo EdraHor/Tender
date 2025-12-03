@@ -16,44 +16,52 @@ public class DialogueView : DialoguePresenterBase
     [SerializeField] private float autoAdvanceDelay = 2f;
     [SerializeField] private bool showControlButtons = true;
     
-    private VisualElement root;
-    private VisualElement dialogueBox;
-    private VisualElement optionsContainer;
-    private VisualElement characterNameContainer;
-    private VisualElement clickArea;
-    private VisualElement historyPanel;
-    private VisualElement bottomControls;
-    private ScrollView historyScroll;
+    private VisualElement _root;
+    private VisualElement _dialogueBox;
+    private VisualElement _optionsContainer;
+    private VisualElement _characterNameContainer;
+    private VisualElement _clickArea;
+    private VisualElement _historyPanel;
+    private VisualElement _bottomControls;
+    private ScrollView _historyScroll;
     
-    private Label characterNameLabel;
-    private Label dialogueTextLabel;
-    private Button historyButton;
-    private Button autoButton;
-    private Button skipButton;
-    private Button closeHistoryButton;
+    private Label _characterNameLabel;
+    private Label _dialogueTextLabel;
+    private Button _historyButton;
+    private Button _autoButton;
+    private Button _skipButton;
+    private Button _closeHistoryButton;
     
-    private List<HistoryEntry> history = new List<HistoryEntry>();
-    private bool isAutoMode = false;
-    private bool isSkipping = false;
-    private bool isLineComplete = false;
-    private bool isFirstLine = true;
-    private int currentVisibleChars = 0;
+    private List<HistoryEntry> _history = new List<HistoryEntry>();
+    private bool _isAutoMode = false;
+    private bool _isSkipping = false;
+    private bool _isLineComplete = false;
+    private bool _isFirstLine = true;
     
-    private CancellationTokenSource typewriterCTS;
-    private LocalizedLine currentLine;
-    private DialogueOption[] currentDialogueOptions;
-    private YarnTaskCompletionSource<DialogueOption?> optionCompletionSource;
-    private int selectedOptionIndex = 0;
-    private List<Button> optionButtons = new List<Button>();
+    // Блокировка ввода во время фейда
+    private bool _isTransitioning = false;
     
-    private float lastNavigationTime = 0f;
-    private const float navigationCooldown = 0.2f;
-    private const float navigateThreshold = 0.5f;
+    // FIX: Задача для ожидания клика внутри текста
+    private YarnTaskCompletionSource<bool> _waitingForClick; 
+    
+    private int _currentVisibleChars = 0;
+    
+    private CancellationTokenSource _typewriterCTS;
+    private LocalizedLine _currentLine;
+    private string _currentDisplayText;
+    private DialogueOption[] _currentDialogueOptions;
+    private YarnTaskCompletionSource<DialogueOption?> _optionCompletionSource;
+    private int _selectedOptionIndex = 0;
+    private List<Button> _optionButtons = new List<Button>();
+    
+    private float _lastNavigationTime = 0f;
+    private const float NavigationCooldown = 0.2f;
+    private const float NavigateThreshold = 0.5f;
     
     private struct HistoryEntry
     {
-        public string characterName;
-        public string text;
+        public string CharacterName;
+        public string Text;
     }
     
     private void Awake()
@@ -70,45 +78,42 @@ public class DialogueView : DialoguePresenterBase
     
     private void InitializeUI()
     {
-        root = uiDocument.rootVisualElement;
+        _root = uiDocument.rootVisualElement;
         
-        dialogueBox = root.Q<VisualElement>("DialogueBox");
-        optionsContainer = root.Q<VisualElement>("OptionsContainer");
-        characterNameContainer = root.Q<VisualElement>("CharacterNameContainer");
-        clickArea = root.Q<VisualElement>("ClickArea");
-        historyPanel = root.Q<VisualElement>("HistoryPanel");
-        bottomControls = root.Q<VisualElement>("BottomControls");
-        historyScroll = root.Q<ScrollView>("HistoryScroll");
+        _dialogueBox = _root.Q<VisualElement>("DialogueBox");
+        _optionsContainer = _root.Q<VisualElement>("OptionsContainer");
+        _characterNameContainer = _root.Q<VisualElement>("CharacterNameContainer");
+        _clickArea = _root.Q<VisualElement>("ClickArea");
+        _historyPanel = _root.Q<VisualElement>("HistoryPanel");
+        _bottomControls = _root.Q<VisualElement>("BottomControls");
+        _historyScroll = _root.Q<ScrollView>("HistoryScroll");
         
-        characterNameLabel = root.Q<Label>("CharacterName");
-        dialogueTextLabel = root.Q<Label>("DialogueText");
+        _characterNameLabel = _root.Q<Label>("CharacterName");
+        _characterNameLabel.enableRichText = true;
+        _dialogueTextLabel = _root.Q<Label>("DialogueText");
+        _dialogueTextLabel.enableRichText = true;
         
-        historyButton = root.Q<Button>("HistoryButton");
-        autoButton = root.Q<Button>("AutoButton");
-        skipButton = root.Q<Button>("SkipButton");
-        closeHistoryButton = root.Q<Button>("CloseHistoryButton");
+        _historyButton = _root.Q<Button>("HistoryButton");
+        _autoButton = _root.Q<Button>("AutoButton");
+        _skipButton = _root.Q<Button>("SkipButton");
+        _closeHistoryButton = _root.Q<Button>("CloseHistoryButton");
         
-        // Click area для продолжения - на пустом пространстве и на самом окне
-        clickArea.RegisterCallback<ClickEvent>(evt => OnContinueRequested());
+        _clickArea.RegisterCallback<ClickEvent>(evt => OnContinueRequested());
         
-        // Добавить клик на диалоговое окно
-        dialogueBox.RegisterCallback<ClickEvent>(evt => 
+        _dialogueBox.RegisterCallback<ClickEvent>(evt => 
         {
-            // Проверить что клик не был на кнопках
-            if (evt.target == dialogueBox || evt.target == dialogueTextLabel || 
-                evt.target == characterNameLabel || evt.target == characterNameContainer)
+            if (evt.target == _dialogueBox || evt.target == _dialogueTextLabel || 
+                evt.target == _characterNameLabel || evt.target == _characterNameContainer)
             {
                 OnContinueRequested();
             }
         });
         
-        // Кнопки управления
-        historyButton.clicked += ToggleHistory;
-        autoButton.clicked += ToggleAuto;
-        skipButton.clicked += ToggleSkip;
-        closeHistoryButton.clicked += () => historyPanel.AddToClassList("hidden");
+        _historyButton.clicked += ToggleHistory;
+        _autoButton.clicked += ToggleAuto;
+        _skipButton.clicked += ToggleSkip;
+        _closeHistoryButton.clicked += () => _historyPanel.AddToClassList("hidden");
         
-        // Скрыть все элементы по умолчанию
         HideAll();
     }
     
@@ -128,7 +133,9 @@ public class DialogueView : DialoguePresenterBase
     
     private void OnDestroy()
     {
-        typewriterCTS?.Cancel();
+        _typewriterCTS?.Cancel();
+        // FIX: Очистка задачи если она висит
+        _waitingForClick?.TrySetResult(true);
         
         var input = G.Input;
         if (input != null)
@@ -145,35 +152,37 @@ public class DialogueView : DialoguePresenterBase
     
     private void OnNavigateInput(float value)
     {
-        // Этот метод теперь работает для первого срабатывания
-        // Update() обрабатывает удержание
-        bool isOutsideDeadzone = Mathf.Abs(value) >= navigateThreshold;
+        if (_isTransitioning) return;
         
-        if (isOutsideDeadzone && Time.time - lastNavigationTime >= navigationCooldown)
+        bool isOutsideDeadzone = Mathf.Abs(value) >= NavigateThreshold;
+        
+        if (isOutsideDeadzone && Time.time - _lastNavigationTime >= NavigationCooldown)
         {
             int direction = value > 0 ? 1 : -1;
             NavigateOptions(direction);
         }
     }
     
-    public override YarnTask OnDialogueStartedAsync()
+    public override async YarnTask OnDialogueStartedAsync()
     {
-        G.Input?.EnableDialogue();
         HideAll();
-        isFirstLine = true; // Сбросить флаг для fade in первой реплики
-        return YarnTask.CompletedTask;
+        _isFirstLine = true;
+        _waitingForClick = null;
+        
+        // Задержка чтобы сбросить Input System
+        await YarnTask.Yield();
+        G.Input?.EnableDialogue();
     }
     
     private void Update()
     {
-        // Постоянная проверка удержания навигации для опций
-        if (optionButtons.Count > 0 && G.Input != null)
+        if (_optionButtons.Count > 0 && G.Input != null && !_isTransitioning)
         {
             float value = G.Input.Dialogue.ChoiceNavigate.ReadValue<float>();
             
-            if (Mathf.Abs(value) >= navigateThreshold)
+            if (Mathf.Abs(value) >= NavigateThreshold)
             {
-                if (Time.time - lastNavigationTime >= navigationCooldown)
+                if (Time.time - _lastNavigationTime >= NavigationCooldown)
                 {
                     int direction = value > 0 ? 1 : -1;
                     NavigateOptions(direction);
@@ -185,114 +194,127 @@ public class DialogueView : DialoguePresenterBase
     public override async YarnTask OnDialogueCompleteAsync()
     {
         G.Input?.EnablePlayer();
+        _waitingForClick?.TrySetResult(true);
         
-        // Fade out только при завершении всего диалога
-        if (useFadeEffect && dialogueBox != null && dialogueBox.style.display == DisplayStyle.Flex)
+        if (useFadeEffect && _dialogueBox != null && _dialogueBox.style.display == DisplayStyle.Flex)
         {
-            await FadeOut(dialogueBox, default);
+            await FadeOut(_dialogueBox, default);
         }
         
         HideAll();
-        isAutoMode = false;
-        isSkipping = false;
+        _isAutoMode = false;
+        _isSkipping = false;
         UpdateButtonStates();
     }
     
     public override async YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
     {
-        currentLine = line;
-        isLineComplete = false;
-        currentVisibleChars = 0;
+        _currentLine = line;
+        _isLineComplete = false;
+        _currentVisibleChars = 0;
+        _waitingForClick = null; // Сброс
         
-        // Настройка UI
-        var text = line.TextWithoutCharacterName;
+        var fullText = line.Text.Text;
+        string characterName = line.CharacterName;
+        string textWithoutName = line.TextWithoutCharacterName.Text;
         
-        // Не устанавливаем текст сразу если включен typewriter
-        if (!useTypewriter || isSkipping)
+        if (string.IsNullOrEmpty(characterName))
         {
-            dialogueTextLabel.text = text.Text;
+            (characterName, textWithoutName) = DialogueUtils.ExtractCharacterName(fullText);
+        }
+        
+        string textForProcessing = DialogueUtils.RemoveYarnMarkers(textWithoutName);
+        _currentDisplayText = DialogueUtils.GetDisplayText(textForProcessing);
+        var cleanText = DialogueUtils.GetCleanText(textForProcessing);
+        
+        if (!useTypewriter || _isSkipping)
+        {
+            _dialogueTextLabel.text = _currentDisplayText;
         }
         else
         {
-            dialogueTextLabel.text = "";
+            _dialogueTextLabel.text = "";
         }
         
-        if (!string.IsNullOrEmpty(line.CharacterName))
+        if (!string.IsNullOrEmpty(characterName))
         {
-            characterNameLabel.text = line.CharacterName;
-            characterNameContainer.style.display = DisplayStyle.Flex;
+            _characterNameLabel.text = characterName;
+            _characterNameContainer.style.display = DisplayStyle.Flex;
         }
         else
         {
-            characterNameContainer.style.display = DisplayStyle.None;
+            _characterNameContainer.style.display = DisplayStyle.None;
         }
         
-        // Показываем диалоговое окно
-        optionsContainer.style.display = DisplayStyle.None;
-        dialogueBox.style.display = DisplayStyle.Flex;
-        bottomControls.style.display = showControlButtons ? DisplayStyle.Flex : DisplayStyle.None;
+        _optionsContainer.style.display = DisplayStyle.None;
+        _dialogueBox.style.display = DisplayStyle.Flex;
+        _bottomControls.style.display = showControlButtons ? DisplayStyle.Flex : DisplayStyle.None;
         
-        // Fade in только для первой реплики
-        if (useFadeEffect && isFirstLine)
+        if (useFadeEffect && _isFirstLine)
         {
-            await FadeIn(dialogueBox, token.HurryUpToken);
-            isFirstLine = false;
+            _isTransitioning = true;
+            await FadeIn(_dialogueBox, token.NextLineToken);
+            _isTransitioning = false;
+            _isFirstLine = false;
         }
         
-        // Typewriter эффект
-        if (useTypewriter && !isSkipping)
+        if (token.HurryUpToken.IsCancellationRequested)
         {
-            typewriterCTS?.Cancel();
-            typewriterCTS = new CancellationTokenSource();
-            var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(token.HurryUpToken, typewriterCTS.Token);
+             _dialogueTextLabel.text = _currentDisplayText;
+        }
+        else if (useTypewriter && !_isSkipping)
+        {
+            _typewriterCTS?.Cancel();
+            _typewriterCTS = new CancellationTokenSource();
             
-            await TypewriterEffect(text.Text, linkedCTS.Token);
+            token.HurryUpToken.Register(() =>
+            {
+                _typewriterCTS?.Cancel();
+                // FIX: Если нас торопят, отменяем ожидание клика
+                _waitingForClick?.TrySetResult(true);
+            });
+            
+            await TypewriterEffect(textForProcessing, _typewriterCTS.Token);
         }
         
-        isLineComplete = true;
+        _isLineComplete = true;
+        _waitingForClick = null;
         
-        // Добавить в историю
-        history.Add(new HistoryEntry
+        _history.Add(new HistoryEntry
         {
-            characterName = line.CharacterName,
-            text = text.Text
+            CharacterName = characterName,
+            Text = cleanText
         });
         
-        // Авто-режим или ожидание ввода
-        if (isAutoMode && !token.NextLineToken.IsCancellationRequested)
+        if (_isAutoMode && !token.NextLineToken.IsCancellationRequested)
         {
             await YarnTask.Delay((int)(autoAdvanceDelay * 1000), token.NextLineToken).SuppressCancellationThrow();
         }
-        else if (!isSkipping)
+        else if (!_isSkipping)
         {
             await YarnTask.WaitUntilCanceled(token.NextLineToken).SuppressCancellationThrow();
         }
-        
-        // Не делаем fade out между репликами, чтобы окно не мигало
-        // Fade out только при завершении диалога в OnDialogueCompleteAsync
     }
     
     public override async YarnTask<DialogueOption?> RunOptionsAsync(DialogueOption[] dialogueOptions, CancellationToken cancellationToken)
     {
-        // Скрыть диалоговое окно и показать опции
-        dialogueBox.style.display = DisplayStyle.None;
-        optionsContainer.style.display = DisplayStyle.Flex;
-        optionsContainer.Clear();
-        optionButtons.Clear();
-        selectedOptionIndex = 0;
-        lastNavigationTime = 0f; // Сбросить cooldown для новых опций
+        _dialogueBox.style.display = DisplayStyle.None;
+        _optionsContainer.style.display = DisplayStyle.Flex;
+        _optionsContainer.Clear();
+        _optionButtons.Clear();
+        _selectedOptionIndex = 0;
+        _lastNavigationTime = 0f;
         
-        currentDialogueOptions = dialogueOptions;
-        optionCompletionSource = new YarnTaskCompletionSource<DialogueOption?>();
+        _currentDialogueOptions = dialogueOptions;
+        _optionCompletionSource = new YarnTaskCompletionSource<DialogueOption?>();
         
-        // Создать кнопки опций
         for (int i = 0; i < dialogueOptions.Length; i++)
         {
             var option = dialogueOptions[i];
             var button = new Button();
             button.AddToClassList("option-button");
             button.text = option.Line.Text.Text;
-            button.focusable = false; // Отключить keyboard focus
+            button.focusable = false;
             
             if (!option.IsAvailable)
                 button.AddToClassList("unavailable");
@@ -300,224 +322,276 @@ public class DialogueView : DialoguePresenterBase
             var index = i;
             button.clicked += () => OnOptionSelected(index);
             
-            // При наведении мышки - сбросить keyboard selection и подсветить этот
             button.RegisterCallback<MouseEnterEvent>(evt => 
             {
-                // Убрать выделение со всех
-                foreach (var btn in optionButtons)
+                foreach (var btn in _optionButtons)
                     btn.RemoveFromClassList("selected");
                 
-                // Подсветить текущий
                 button.AddToClassList("selected");
-                selectedOptionIndex = index;
+                _selectedOptionIndex = index;
             });
             
-            optionsContainer.Add(button);
-            optionButtons.Add(button);
+            _optionsContainer.Add(button);
+            _optionButtons.Add(button);
         }
         
-        // Выделить первую опцию по умолчанию
-        if (optionButtons.Count > 0)
-            optionButtons[0].AddToClassList("selected");
+        if (_optionButtons.Count > 0)
+            _optionButtons[0].AddToClassList("selected");
         
-        // Fade in
         if (useFadeEffect)
-            await FadeIn(optionsContainer, cancellationToken);
+        {
+            _isTransitioning = true;
+            await FadeIn(_optionsContainer, cancellationToken);
+            _isTransitioning = false;
+        }
         
-        // Ждать выбора
-        var result = await optionCompletionSource.Task;
+        var result = await _optionCompletionSource.Task;
         
-        // Fade out
         if (useFadeEffect)
-            await FadeOut(optionsContainer, cancellationToken).SuppressCancellationThrow();
+        {
+            _isTransitioning = true;
+            await FadeOut(_optionsContainer, cancellationToken).SuppressCancellationThrow();
+            _isTransitioning = false;
+        }
         
         return result;
     }
     
     private void OnContinueRequested()
     {
-        if (historyPanel.ClassListContains("hidden") == false)
-            return; // Не продолжать если открыта история
+        if (_isTransitioning) return;
+        
+        if (_historyPanel.ClassListContains("hidden") == false)
+            return;
         
         if (dialogueRunner == null)
+            return;
+            
+        // FIX: Если мы ждем [click] внутри текста — просто завершаем ожидание и выходим,
+        // чтобы typewriter продолжил печатать дальше
+        if (_waitingForClick != null)
         {
-            Debug.LogError("[DialogueView] DialogueRunner не назначен!");
+            _waitingForClick.TrySetResult(true);
             return;
         }
             
-        if (!isLineComplete && useTypewriter)
+        if (!_isLineComplete && useTypewriter)
         {
-            // Завершить typewriter немедленно
-            typewriterCTS?.Cancel();
-            dialogueTextLabel.text = currentLine?.TextWithoutCharacterName.Text ?? "";
-            isLineComplete = true;
+            _typewriterCTS?.Cancel();
+            _dialogueTextLabel.text = _currentDisplayText ?? "";
+            _isLineComplete = true;
             dialogueRunner.RequestHurryUpLine();
         }
-        else if (isLineComplete)
+        else if (_isLineComplete)
         {
-            // Продолжить к следующей строке
             dialogueRunner.RequestNextLine();
         }
     }
     
     private void OnForceContinueRequested()
     {
-        if (historyPanel.ClassListContains("hidden") == false)
+        if (_isTransitioning) return;
+        
+        if (_historyPanel.ClassListContains("hidden") == false)
             return;
         
         if (dialogueRunner == null)
+            return;
+            
+        // FIX: Аналогично для ForceContinue
+        if (_waitingForClick != null)
         {
-            Debug.LogError("[DialogueView] DialogueRunner не назначен!");
+            _waitingForClick.TrySetResult(true);
             return;
         }
         
-        // Если текст еще выводится - пропустить анимацию, но не переходить дальше
-        if (!isLineComplete && useTypewriter)
+        if (!_isLineComplete && useTypewriter)
         {
-            typewriterCTS?.Cancel();
-            dialogueTextLabel.text = currentLine?.TextWithoutCharacterName.Text ?? "";
-            isLineComplete = true;
+            _typewriterCTS?.Cancel();
+            _dialogueTextLabel.text = _currentDisplayText ?? "";
+            _isLineComplete = true;
             dialogueRunner.RequestHurryUpLine();
         }
-        else if (isLineComplete)
+        else if (_isLineComplete)
         {
-            // Если текст уже полностью выведен - перейти к следующей строке
             dialogueRunner.RequestNextLine();
         }
     }
     
     private void OnOptionSelected(int index)
     {
-        if (index < 0 || index >= optionButtons.Count)
+        if (_isTransitioning) return;
+        
+        if (index < 0 || index >= _optionButtons.Count)
             return;
             
-        var button = optionButtons[index];
+        var button = _optionButtons[index];
         if (button.ClassListContains("unavailable"))
             return;
         
-        if (currentDialogueOptions != null && index < currentDialogueOptions.Length)
+        if (_currentDialogueOptions != null && index < _currentDialogueOptions.Length)
         {
-            optionCompletionSource?.TrySetResult(currentDialogueOptions[index]);
+            _optionCompletionSource?.TrySetResult(_currentDialogueOptions[index]);
         }
     }
     
     private void NavigateOptions(int direction)
     {
-        if (optionButtons.Count == 0)
-            return;
+        if (_optionButtons.Count == 0) return;
+        if (Time.time - _lastNavigationTime < NavigationCooldown) return;
         
-        // Cooldown для предотвращения дерганья со стика
-        if (Time.time - lastNavigationTime < navigationCooldown)
-            return;
+        _lastNavigationTime = Time.time;
+        foreach (var btn in _optionButtons) btn.RemoveFromClassList("selected");
         
-        lastNavigationTime = Time.time;
-        
-        // Убрать выделение со всех кнопок
-        foreach (var btn in optionButtons)
-            btn.RemoveFromClassList("selected");
-        
-        selectedOptionIndex += direction;
-        if (selectedOptionIndex < 0)
-            selectedOptionIndex = optionButtons.Count - 1;
-        else if (selectedOptionIndex >= optionButtons.Count)
-            selectedOptionIndex = 0;
+        _selectedOptionIndex += direction;
+        if (_selectedOptionIndex < 0) _selectedOptionIndex = _optionButtons.Count - 1;
+        else if (_selectedOptionIndex >= _optionButtons.Count) _selectedOptionIndex = 0;
             
-        optionButtons[selectedOptionIndex].AddToClassList("selected");
+        _optionButtons[_selectedOptionIndex].AddToClassList("selected");
     }
     
     private void ConfirmSelectedOption()
     {
-        if (optionButtons.Count == 0)
-            return;
-            
-        OnOptionSelected(selectedOptionIndex);
+        if (_optionButtons.Count == 0) return;
+        OnOptionSelected(_selectedOptionIndex);
     }
     
-    private async YarnTask TypewriterEffect(string text, CancellationToken ct)
+    private async YarnTask TypewriterEffect(string textWithMarkers, CancellationToken ct)
     {
-        dialogueTextLabel.text = "";
-        currentVisibleChars = 0;
+        _dialogueTextLabel.text = "";
+        _currentVisibleChars = 0;
         
         float delay = 1f / charactersPerSecond;
+        var markers = DialogueUtils.ExtractSpecialMarkers(textWithMarkers);
+        int markerIndex = 0;
+        var parts = DialogueUtils.ParseRichText(textWithMarkers);
+        string currentText = "";
+        int currentCleanPosition = 0;
         
-        foreach (char c in text)
+        foreach (var part in parts)
         {
             if (ct.IsCancellationRequested)
-                break;
-                
-            dialogueTextLabel.text += c;
-            currentVisibleChars++;
+            {
+                _dialogueTextLabel.text = _currentDisplayText;
+                return;
+            }
             
-            await YarnTask.Delay((int)(delay * 1000), ct).SuppressCancellationThrow();
+            if (part.IsTag)
+            {
+                currentText += part.Content;
+                _dialogueTextLabel.text = currentText;
+            }
+            else
+            {
+                foreach (char c in part.Content)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        _dialogueTextLabel.text = _currentDisplayText;
+                        return;
+                    }
+                    
+                    while (markerIndex < markers.Count && markers[markerIndex].Position == currentCleanPosition)
+                    {
+                        var marker = markers[markerIndex];
+                        
+                        if (marker.Type == DialogueUtils.SpecialMarker.MarkerType.Wait)
+                        {
+                            await YarnTask.Delay((int)(marker.WaitTime * 1000), ct).SuppressCancellationThrow();
+                        }
+                        else if (marker.Type == DialogueUtils.SpecialMarker.MarkerType.Click)
+                        {
+                            // FIX: Создаем задачу ожидания вместо return
+                            _waitingForClick = new YarnTaskCompletionSource<bool>();
+                            
+                            // Ждем, пока юзер не нажмет кнопку (OnContinueRequested),
+                            // либо пока токен отмены (ct) не сработает (например, Skip или HurryUp)
+                            using (ct.Register(() => _waitingForClick.TrySetResult(true)))
+                            {
+                                await _waitingForClick.Task;
+                            }
+                            
+                            _waitingForClick = null;
+                            
+                            // Если после ожидания нас отменили (нажали Skip во время паузы), выходим
+                            if (ct.IsCancellationRequested)
+                            {
+                                _dialogueTextLabel.text = _currentDisplayText;
+                                return;
+                            }
+                        }
+                        
+                        markerIndex++;
+                    }
+                    
+                    currentText += c;
+                    _dialogueTextLabel.text = currentText;
+                    currentCleanPosition++;
+                    _currentVisibleChars++;
+                    
+                    await YarnTask.Delay((int)(delay * 1000), ct).SuppressCancellationThrow();
+                }
+            }
         }
         
-        dialogueTextLabel.text = text;
-        isLineComplete = true;
+        _dialogueTextLabel.text = _currentDisplayText;
     }
     
     private void ToggleHistory()
     {
-        bool isHidden = historyPanel.ClassListContains("hidden");
-        
-        if (isHidden)
-        {
-            ShowHistory();
-            historyPanel.RemoveFromClassList("hidden");
-        }
-        else
-        {
-            historyPanel.AddToClassList("hidden");
-        }
+        bool isHidden = _historyPanel.ClassListContains("hidden");
+        if (isHidden) { ShowHistory(); _historyPanel.RemoveFromClassList("hidden"); }
+        else { _historyPanel.AddToClassList("hidden"); }
     }
     
     private void ShowHistory()
     {
-        historyScroll.Clear();
-        
-        foreach (var entry in history)
+        _historyScroll.Clear();
+        foreach (var entry in _history)
         {
             var entryElement = new VisualElement();
             entryElement.AddToClassList("history-entry");
-            
-            if (!string.IsNullOrEmpty(entry.characterName))
+            if (!string.IsNullOrEmpty(entry.CharacterName))
             {
-                var nameLabel = new Label(entry.characterName);
+                var nameLabel = new Label(entry.CharacterName);
                 nameLabel.AddToClassList("history-entry-name");
                 entryElement.Add(nameLabel);
             }
-            
-            var textLabel = new Label(entry.text);
+            var textLabel = new Label(entry.Text);
             textLabel.AddToClassList("history-entry-text");
             entryElement.Add(textLabel);
-            
-            historyScroll.Add(entryElement);
+            _historyScroll.Add(entryElement);
         }
     }
     
     private void ToggleAuto()
     {
-        isAutoMode = !isAutoMode;
+        _isAutoMode = !_isAutoMode;
         UpdateButtonStates();
     }
     
     private void ToggleSkip()
     {
-        isSkipping = !isSkipping;
+        _isSkipping = !_isSkipping;
         UpdateButtonStates();
         
-        if (isSkipping)
+        if (_isSkipping)
         {
-            // Если текст еще выводится - пропустить анимацию
-            if (!isLineComplete && useTypewriter && currentLine != null)
+            // FIX: Если мы в режиме пропуска и висит пауза на клике — снимаем её
+            if (_waitingForClick != null)
             {
-                typewriterCTS?.Cancel();
-                dialogueTextLabel.text = currentLine.TextWithoutCharacterName.Text;
-                isLineComplete = true;
+                _waitingForClick.TrySetResult(true);
+            }
+            
+            if (!_isLineComplete && useTypewriter && _currentLine != null)
+            {
+                _typewriterCTS?.Cancel();
+                _dialogueTextLabel.text = _currentDisplayText ?? "";
+                _isLineComplete = true;
                 if (dialogueRunner != null)
                     dialogueRunner.RequestHurryUpLine();
             }
-            // Если текст уже полностью выведен - сразу перейти к следующей реплике
-            else if (isLineComplete && dialogueRunner != null)
+            else if (_isLineComplete && dialogueRunner != null)
             {
                 dialogueRunner.RequestNextLine();
             }
@@ -526,35 +600,20 @@ public class DialogueView : DialoguePresenterBase
     
     private void UpdateButtonStates()
     {
-        if (autoButton != null)
-        {
-            if (isAutoMode)
-                autoButton.AddToClassList("active");
-            else
-                autoButton.RemoveFromClassList("active");
-        }
-        
-        if (skipButton != null)
-        {
-            if (isSkipping)
-                skipButton.AddToClassList("active");
-            else
-                skipButton.RemoveFromClassList("active");
-        }
+        if (_autoButton != null) { if (_isAutoMode) _autoButton.AddToClassList("active"); else _autoButton.RemoveFromClassList("active"); }
+        if (_skipButton != null) { if (_isSkipping) _skipButton.AddToClassList("active"); else _skipButton.RemoveFromClassList("active"); }
     }
     
     private async YarnTask FadeIn(VisualElement element, CancellationToken ct)
     {
         element.style.opacity = 0;
         float elapsed = 0;
-        
         while (elapsed < fadeUpDuration && !ct.IsCancellationRequested)
         {
             elapsed += Time.deltaTime;
             element.style.opacity = Mathf.Lerp(0, 1, elapsed / fadeUpDuration);
             await YarnTask.Yield();
         }
-        
         element.style.opacity = 1;
     }
     
@@ -562,23 +621,21 @@ public class DialogueView : DialoguePresenterBase
     {
         element.style.opacity = 1;
         float elapsed = 0;
-        
         while (elapsed < fadeDownDuration && !ct.IsCancellationRequested)
         {
             elapsed += Time.deltaTime;
             element.style.opacity = Mathf.Lerp(1, 0, elapsed / fadeDownDuration);
             await YarnTask.Yield();
         }
-        
         element.style.opacity = 0;
     }
     
     private void HideAll()
     {
-        if (dialogueBox != null) dialogueBox.style.display = DisplayStyle.None;
-        if (optionsContainer != null) optionsContainer.style.display = DisplayStyle.None;
-        if (bottomControls != null) bottomControls.style.display = DisplayStyle.None;
-        if (characterNameContainer != null) characterNameContainer.style.display = DisplayStyle.None;
-        if (historyPanel != null) historyPanel.AddToClassList("hidden");
+        if (_dialogueBox != null) _dialogueBox.style.display = DisplayStyle.None;
+        if (_optionsContainer != null) _optionsContainer.style.display = DisplayStyle.None;
+        if (_bottomControls != null) _bottomControls.style.display = DisplayStyle.None;
+        if (_characterNameContainer != null) _characterNameContainer.style.display = DisplayStyle.None;
+        if (_historyPanel != null) _historyPanel.AddToClassList("hidden");
     }
 }

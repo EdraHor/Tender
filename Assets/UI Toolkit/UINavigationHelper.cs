@@ -176,4 +176,82 @@ public static class UINavigationHelper
     {
         root?.UnregisterCallback(handler, TrickleDown.TrickleDown);
     }
+    
+    // Класс для управления режимами ввода (keyboard/mouse) с корректной отпиской от событий
+    public class InputModeTracker
+    {
+        private VisualElement _root;
+        private bool _mouseJustMoved;
+        
+        private EventCallback<NavigationMoveEvent> _navCallback;
+        private EventCallback<MouseMoveEvent> _mouseCallback;
+        private System.Collections.Generic.List<(Button button, EventCallback<MouseEnterEvent> enter, EventCallback<MouseLeaveEvent> leave)> _buttonCallbacks = new();
+        
+        public void Initialize(VisualElement root)
+        {
+            _root = root;
+            
+            _navCallback = evt => SwitchToKeyboardMode();
+            _mouseCallback = evt => SwitchToMouseMode();
+            
+            _root.RegisterCallback(_navCallback, TrickleDown.TrickleDown);
+            _root.RegisterCallback(_mouseCallback, TrickleDown.TrickleDown);
+            
+            _root.Query<Button>().ForEach(RegisterHoverEvents);
+        }
+        
+        public void Dispose()
+        {
+            if (_root == null) return;
+            
+            _root.UnregisterCallback(_navCallback, TrickleDown.TrickleDown);
+            _root.UnregisterCallback(_mouseCallback, TrickleDown.TrickleDown);
+            
+            foreach (var (btn, enter, leave) in _buttonCallbacks)
+            {
+                btn?.UnregisterCallback(enter);
+                btn?.UnregisterCallback(leave);
+            }
+            _buttonCallbacks.Clear();
+        }
+        
+        private void RegisterHoverEvents(Button btn)
+        {
+            EventCallback<MouseEnterEvent> enter = evt => {
+                if (_root.ClassListContains("keyboard-mode") && !_mouseJustMoved) return;
+                if (_mouseJustMoved && _root.ClassListContains("keyboard-mode"))
+                    SwitchToMouseMode();
+                (evt.target as Button)?.AddToClassList("hovered");
+            };
+            
+            EventCallback<MouseLeaveEvent> leave = evt => {
+                (evt.target as Button)?.RemoveFromClassList("hovered");
+            };
+            
+            btn.RegisterCallback(enter);
+            btn.RegisterCallback(leave);
+            _buttonCallbacks.Add((btn, enter, leave));
+        }
+        
+        private void SwitchToKeyboardMode()
+        {
+            if (!_root.ClassListContains("keyboard-mode"))
+            {
+                _root.AddToClassList("keyboard-mode");
+                _mouseJustMoved = false;
+                _root.Query<Button>().ForEach(btn => btn.RemoveFromClassList("hovered"));
+            }
+        }
+        
+        private void SwitchToMouseMode()
+        {
+            _mouseJustMoved = true;
+            if (_root.ClassListContains("keyboard-mode"))
+            {
+                _root.RemoveFromClassList("keyboard-mode");
+                var focused = _root.focusController?.focusedElement;
+                if (focused is Button) focused.Blur();
+            }
+        }
+    }
 }
