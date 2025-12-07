@@ -36,7 +36,7 @@ public static class G
             }
             
             if (objects.Length > 1)
-                Debug.LogWarning($"[G] Найдено {objects.Length} объектов {typeof(T).Name}! Используется первый: {objects[0].name}");
+                Debug.LogError($"[G] Найдено {objects.Length} объектов {typeof(T).Name}! Используется первый: {objects[0].name}");
             
             cached = objects[0];
         }

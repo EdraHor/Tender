@@ -4,7 +4,7 @@ using UnityEngine;
 /// Инициализирует все системы игры при запуске
 /// Создаётся автоматически, не нужно добавлять в сцену вручную
 /// </summary>
-public class Bootstrap : MonoBehaviour
+public class AppBootstrap : MonoBehaviour
 {
     /// <summary>
     /// Автоматический запуск ДО загрузки первой сцены
@@ -15,7 +15,7 @@ public class Bootstrap : MonoBehaviour
         // Создаём GameObject который переживёт смену сцен
         var bootstrapObject = new GameObject("[Bootstrap]");
         DontDestroyOnLoad(bootstrapObject);
-        bootstrapObject.AddComponent<Bootstrap>();
+        bootstrapObject.AddComponent<AppBootstrap>();
         
         Debug.Log("[Bootstrap] Создан");
     }
@@ -36,6 +36,12 @@ public class Bootstrap : MonoBehaviour
             var inputObject = new GameObject("[SaveManager]");
             DontDestroyOnLoad(inputObject);
             inputObject.AddComponent<SaveManager>();
+        }
+        if (FindAnyObjectByType<GraphicsManager>(FindObjectsInactive.Include) == null)
+        {
+            var inputObject = new GameObject("[GraphicsManager]");
+            DontDestroyOnLoad(inputObject);
+            inputObject.AddComponent<GraphicsManager>();
         }
         if (FindAnyObjectByType<AudioManager>(FindObjectsInactive.Include) == null)
         {
