@@ -4,11 +4,12 @@ using System.Collections.Generic;
 public class PianoKeyboard : MonoBehaviour
 {
     [Header("Keys Setup")]
-    [SerializeField] private Transform[] _whiteKeys;
-    [SerializeField] private Transform[] _blackKeys;
+    public Transform[] WhiteKeys;
+    public Transform[] BlackKeys;
     
     [Header("Audio Settings")]
     [SerializeField] private string _samplesPath = "Audio/SalamanderPiano";
+    [SerializeField] private bool _allowPitchShifting = true;
     
     private Dictionary<int, PianoKey> _keysByMidiNote = new Dictionary<int, PianoKey>();
     
@@ -19,17 +20,25 @@ public class PianoKeyboard : MonoBehaviour
     
     private void InitializeKeys()
     {
-        // Белые клавиши: стандартное 88-клавишное пианино начинается с A0
-        // A0, B0, C1, D1, E1, F1, G1, A1, B1, C2... до C8
+        // Белые клавиши: A0, B0, C1, D1, E1, F1, G1...
         int midiNote = 21; // A0
         
-        for (int i = 0; i < _whiteKeys.Length; i++)
+        for (int i = 0; i < WhiteKeys.Length; i++)
         {
-            AudioClip[] velocityLayers = LoadVelocityLayers(midiNote);
-            float pitchShift = LoadVelocityLayersWithPitch(midiNote, out velocityLayers);
+            float pitchShift = LoadVelocityLayersWithPitch(midiNote, out AudioClip[] velocityLayers, out bool isOriginalSample);
             
-            var key = _whiteKeys[i].gameObject.AddComponent<PianoKey>();
-            key.Initialize(midiNote, velocityLayers, pitchShift);
+            var key = WhiteKeys[i].gameObject.AddComponent<PianoKey>();
+            
+            // Если pitch shifting отключен и это не оригинальный семпл - не даем звуки
+            if (!_allowPitchShifting && !isOriginalSample)
+            {
+                key.Initialize(midiNote, null, pitchShift);
+            }
+            else
+            {
+                key.Initialize(midiNote, velocityLayers, pitchShift);
+            }
+            
             _keysByMidiNote[midiNote] = key;
             
             // Переход к следующей белой клавише
@@ -40,18 +49,28 @@ public class PianoKeyboard : MonoBehaviour
                 midiNote += 2;
         }
         
-        // Черные клавиши: A#0, C#1, D#1, F#1, G#1, A#1...
+        // Черные клавиши: A#0, C#1, D#1, F#1, G#1...
         midiNote = 22; // A#0
         
-        for (int i = 0; i < _blackKeys.Length; i++)
+        for (int i = 0; i < BlackKeys.Length; i++)
         {
-            AudioClip[] velocityLayers = LoadVelocityLayers(midiNote);
+            float pitchShift = LoadVelocityLayersWithPitch(midiNote, out AudioClip[] velocityLayers, out bool isOriginalSample);
             
-            var key = _blackKeys[i].gameObject.AddComponent<PianoKey>();
-            key.Initialize(midiNote, velocityLayers);
+            var key = BlackKeys[i].gameObject.AddComponent<PianoKey>();
+            
+            // Если pitch shifting отключен и это не оригинальный семпл - не даем звуки
+            if (!_allowPitchShifting && !isOriginalSample)
+            {
+                key.Initialize(midiNote, null, pitchShift);
+            }
+            else
+            {
+                key.Initialize(midiNote, velocityLayers, pitchShift);
+            }
+            
             _keysByMidiNote[midiNote] = key;
             
-            // Переход к следующей черной клавише (учитываем отсутствие E# и B#)
+            // Переход к следующей черной клавише
             int noteInOctave = midiNote % 12;
             if (noteInOctave == 10) // A# -> C#
                 midiNote += 3;
@@ -61,11 +80,12 @@ public class PianoKeyboard : MonoBehaviour
                 midiNote += 2;
         }
         
-        Debug.Log($"Initialized {_keysByMidiNote.Count} piano keys");
+        Debug.Log($"Initialized {_keysByMidiNote.Count} piano keys (Pitch shifting: {(_allowPitchShifting ? "ON" : "OFF")})");
     }
     
-    private float LoadVelocityLayersWithPitch(int midiNote, out AudioClip[] velocityLayers)
+    private float LoadVelocityLayersWithPitch(int midiNote, out AudioClip[] velocityLayers, out bool isOriginalSample)
     {
+        // Доступные ноты в Salamander Piano (через малую терцию)
         int[] availableNotes = { 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108 };
     
         int closestNote = availableNotes[0];
@@ -81,50 +101,15 @@ public class PianoKeyboard : MonoBehaviour
             }
         }
     
-        float pitchShift = Mathf.Pow(2f, (midiNote - closestNote) / 12f);
-    
-        string noteName = MidiToNoteName(closestNote);
-        List<AudioClip> layers = new List<AudioClip>();
-    
-        for (int v = 1; v <= 16; v++)
-        {
-            string clipPath = $"{_samplesPath}/{noteName}v{v}";
-            AudioClip clip = Resources.Load<AudioClip>(clipPath);
+        isOriginalSample = (midiNote == closestNote);
         
-            if (clip != null)
-            {
-                layers.Add(clip);
-            }
-        }
-    
-        velocityLayers = layers.ToArray();
-        return pitchShift;
-    }
-    
-    private AudioClip[] LoadVelocityLayers(int midiNote)
-    {
-        // Ноты которые есть в Salamander (каждая 3-я)
-        int[] availableNotes = { 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108 };
-    
-        // Находим ближайшую доступную ноту
-        int closestNote = availableNotes[0];
-        int minDistance = Mathf.Abs(midiNote - closestNote);
-    
-        foreach (int note in availableNotes)
-        {
-            int distance = Mathf.Abs(midiNote - note);
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestNote = note;
-            }
-        }
-    
+        // Вычисляем pitch shift для получения нужной ноты
         float pitchShift = Mathf.Pow(2f, (midiNote - closestNote) / 12f);
     
         string noteName = MidiToNoteName(closestNote);
         List<AudioClip> layers = new List<AudioClip>();
     
+        // Загружаем все 16 velocity layers
         for (int v = 1; v <= 16; v++)
         {
             string clipPath = $"{_samplesPath}/{noteName}v{v}";
@@ -138,14 +123,15 @@ public class PianoKeyboard : MonoBehaviour
     
         if (layers.Count == 0)
         {
-            Debug.LogWarning($"No audio clips found for closest note {closestNote} ({noteName})");
+            Debug.LogWarning($"No audio clips found for note {closestNote} ({noteName})");
         }
-        else if (midiNote != closestNote)
+        else if (!isOriginalSample)
         {
-            Debug.Log($"MIDI {midiNote} using samples from {closestNote}, pitch shift: {pitchShift:F3}");
+            Debug.Log($"MIDI {midiNote} using {layers.Count} layers from {closestNote}, pitch: {pitchShift:F3}x");
         }
     
-        return layers.ToArray();
+        velocityLayers = layers.ToArray();
+        return pitchShift;
     }
     
     private string MidiToNoteName(int midiNote)
@@ -156,11 +142,25 @@ public class PianoKeyboard : MonoBehaviour
         return $"{noteNames[note]}{octave}";
     }
     
-    public void PlayKey(int midiNote, float velocity = 0.5f)
+    public void PressKey(int midiNote, float velocity = 0.5f, float duration = 0.3f)
     {
         if (_keysByMidiNote.TryGetValue(midiNote, out PianoKey key))
         {
-            key.PlayNote(velocity);
+            key.PressKey(velocity, duration);
         }
+    }
+    
+    public Transform GetKeyTransform(int midiNote)
+    {
+        if (_keysByMidiNote.TryGetValue(midiNote, out PianoKey key))
+        {
+            return key.transform;
+        }
+        return null;
+    }
+
+    public Dictionary<int, PianoKey> GetAllKeys()
+    {
+        return _keysByMidiNote;
     }
 }

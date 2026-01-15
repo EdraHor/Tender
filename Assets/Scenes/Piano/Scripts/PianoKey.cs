@@ -15,9 +15,11 @@ public class PianoKey : MonoBehaviour
     private BoxCollider _triggerCollider;
     private bool _isPressed;
     
-    private Transform _visualTransform; // Вращаем только это
+    private Transform _visualTransform;
     private Quaternion _initialRotation;
     private Coroutine _animationCoroutine;
+    
+    public bool IsPressed => _isPressed;
     
     private void Awake()
     {
@@ -28,14 +30,12 @@ public class PianoKey : MonoBehaviour
         _triggerCollider = GetComponent<BoxCollider>();
         _triggerCollider.isTrigger = true;
         
-        // Ищем дочерний объект с мешем или создаем новый
         _visualTransform = transform.childCount > 0 ? transform.GetChild(0) : CreateVisualChild();
         _initialRotation = _visualTransform.localRotation;
     }
     
     private Transform CreateVisualChild()
     {
-        // Если у клавиши есть MeshFilter/MeshRenderer, переносим их на дочерний объект
         GameObject visual = new GameObject("Visual");
         visual.transform.SetParent(transform);
         visual.transform.localPosition = Vector3.zero;
@@ -85,29 +85,48 @@ public class PianoKey : MonoBehaviour
         }
     }
     
-    private void OnTriggerEnter(Collider other)
+    // Для ручного нажатия (PianoInteractor)
+    public void PressKeyManual(float velocity = 0.5f)
     {
         if (!_isPressed)
         {
             _isPressed = true;
-            PlayNote(0.5f);
+            PlayNote(velocity);
             
             if (_animationCoroutine != null)
                 StopCoroutine(_animationCoroutine);
-            _animationCoroutine = StartCoroutine(AnimatePress());
+            _animationCoroutine = StartCoroutine(AnimatePressOnly());
         }
     }
     
-    private void OnTriggerExit(Collider other)
+    // Для ручного отпускания (PianoInteractor)
+    public void ReleaseKeyManual()
     {
-        _isPressed = false;
-        
-        if (_animationCoroutine != null)
-            StopCoroutine(_animationCoroutine);
-        _animationCoroutine = StartCoroutine(AnimateRelease());
+        if (_isPressed)
+        {
+            _isPressed = false;
+            
+            if (_animationCoroutine != null)
+                StopCoroutine(_animationCoroutine);
+            _animationCoroutine = StartCoroutine(AnimateRelease());
+        }
     }
     
-    private IEnumerator AnimatePress()
+    // Для MIDI проигрывания (автоматическое нажатие и отпускание)
+    public void PressKey(float velocity = 0.5f, float duration = 0.3f)
+    {
+        if (!_isPressed)
+        {
+            _isPressed = true;
+            PlayNote(velocity);
+        
+            if (_animationCoroutine != null)
+                StopCoroutine(_animationCoroutine);
+            _animationCoroutine = StartCoroutine(AnimatePressAndRelease(duration));
+        }
+    }
+    
+    private IEnumerator AnimatePressOnly()
     {
         Quaternion targetRotation = _initialRotation * Quaternion.Euler(0, -_maxRotation, 0);
         
@@ -128,6 +147,30 @@ public class PianoKey : MonoBehaviour
             yield return null;
         }
         
+        _visualTransform.localRotation = _initialRotation;
+    }
+    
+    private IEnumerator AnimatePressAndRelease(float holdDuration)
+    {
+        Quaternion targetRotation = _initialRotation * Quaternion.Euler(0, -_maxRotation, 0);
+    
+        while (Quaternion.Angle(_visualTransform.localRotation, targetRotation) > 0.1f)
+        {
+            _visualTransform.localRotation = Quaternion.Lerp(_visualTransform.localRotation, targetRotation, _pressSpeed / Time.deltaTime);
+            yield return null;
+        }
+    
+        _visualTransform.localRotation = targetRotation;
+        yield return new WaitForSeconds(holdDuration);
+    
+        _isPressed = false;
+    
+        while (Quaternion.Angle(_visualTransform.localRotation, _initialRotation) > 0.1f)
+        {
+            _visualTransform.localRotation = Quaternion.Lerp(_visualTransform.localRotation, _initialRotation, _releaseSpeed / Time.deltaTime);
+            yield return null;
+        }
+    
         _visualTransform.localRotation = _initialRotation;
     }
 }
