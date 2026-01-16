@@ -245,25 +245,26 @@ public class NoteVisualizer : MonoBehaviour
             else if (timeFromStart < note.Duration)
             {
                 // ФАЗА 2: Передний край У клавиши, нота сужается с переднего края
-                float shrinkProgress = timeFromStart / note.Duration; // От 0 до 1
+                float effectiveDuration = note.Duration * _depthMultiplier;
+                float shrinkProgress = timeFromStart / effectiveDuration;
+    
+                // Если нота закончилась, но еще не до конца сузилась - продолжаем сужать
+                if (shrinkProgress > 1f)
+                    shrinkProgress = 1f;
+    
                 float currentDepth = note.InitialDepth * (1f - shrinkProgress);
-                
+    
                 if (currentDepth < 0.001f)
                 {
-                    // Совсем маленькая, удаляем
                     Destroy(note.GameObject);
                     _activeNotes.RemoveAt(i);
                     continue;
                 }
-                
-                // Передний край остается У КЛАВИШИ, задний подтягивается к нему
+    
                 Vector3 frontEdge = note.KeyPosition;
-                
-                // Центр на половину глубины дальше от клавиши
                 Vector3 centerPos = frontEdge + directionVector * (currentDepth * 0.5f);
                 note.GameObject.transform.position = centerPos;
-                
-                // Уменьшаем глубину
+    
                 Vector3 scale = new Vector3(_noteWidth, _noteHeight, _noteWidth);
                 scale[depthAxis] = currentDepth;
                 note.GameObject.transform.localScale = scale;

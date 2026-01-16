@@ -14,6 +14,7 @@ public class NoteInfo
     public float Duration;
     public float Velocity;
 }
+
 public class MidiPlayer : MonoBehaviour
 {
     [Header("References")]
@@ -29,12 +30,14 @@ public class MidiPlayer : MonoBehaviour
     [SerializeField] private int _totalNotes;
     [SerializeField] private float _durationSeconds;
     
+    [SerializeField] private int[] _allowedChannels = { 0, 1 };
+    
     private List<NoteInfo> _notesList = new List<NoteInfo>();
     public List<NoteInfo> NotesList => _notesList;
     public bool IsReady { get; private set; }
     private bool _isPlaying;
     
-    private float _startTime;
+    private double _startDspTime;
     public float CurrentPlaybackTime { get; private set; }
     public float PlaybackSpeed => _playbackSpeed;
     public bool IsPlaying => _isPlaying;
@@ -90,16 +93,19 @@ public class MidiPlayer : MonoBehaviour
             var midi = MidiFile.Read(stream);
             var tempoMap = midi.GetTempoMap();
         
-            var notes = midi.GetNotes().OrderBy(n => n.Time).ToList();
+            var notes = midi.GetNotes()
+                .Where(n => _allowedChannels.Contains(n.Channel))
+                .OrderBy(n => n.Time)
+                .ToList();
         
             foreach (var note in notes)
             {
                 float startTime = (float)TimeConverter.ConvertTo<MetricTimeSpan>(
                     note.Time, tempoMap).TotalSeconds;
-                
+            
                 float duration = (float)TimeConverter.ConvertTo<MetricTimeSpan>(
                     note.Length, tempoMap).TotalSeconds;
-            
+        
                 _notesList.Add(new NoteInfo
                 {
                     MidiNote = note.NoteNumber,
@@ -114,51 +120,39 @@ public class MidiPlayer : MonoBehaviour
     private IEnumerator PlayMidi()
     {
         _isPlaying = true;
-        
-        // Читаем MIDI файл через MemoryStream
-        MidiFile midi;
-        using (var stream = new MemoryStream(_midiFile.bytes))
-        {
-            midi = MidiFile.Read(stream);
-        }
-        
-        TempoMap tempoMap = midi.GetTempoMap();
-        
-        // Получаем все ноты и сортируем по времени
-        var notes = midi.GetNotes()
-            .OrderBy(n => n.Time)
-            .ToList();
-        
-        Debug.Log($"Загружено {notes.Count} нот, длительность: {_durationSeconds:F1}с");
-        
-        _startTime = Time.time;
-        int currentNoteIndex = 0;
-        
-        while (currentNoteIndex < notes.Count)
-        {
-            float currentTime = (Time.time - _startTime) * _playbackSpeed;
-            CurrentPlaybackTime = currentTime; // Обновляем текущее время для визуализатора
-            
-            // Проигрываем все ноты которые должны звучать сейчас
-            while (currentNoteIndex < notes.Count)
-            {
-                var note = notes[currentNoteIndex];
-                
-                // Конвертируем MIDI время в секунды
-                float noteTimeSeconds = (float)TimeConverter.ConvertTo<MetricTimeSpan>(
-                    note.Time, tempoMap).TotalSeconds;
-                
-                if (noteTimeSeconds <= currentTime)
-                {
-                    // Проигрываем ноту
-                    int midiNote = note.NoteNumber;
-                    float velocity = note.Velocity / 127f;
-                    
-                    float noteDuration = (float)TimeConverter.ConvertTo<MetricTimeSpan>(
-                        note.Length, tempoMap).TotalSeconds;
     
-                    _keyboard.PressKey(midiNote, velocity, noteDuration);
-                    
+        Debug.Log($"Загружено {_notesList.Count} нот");
+    
+        _startDspTime = AudioSettings.dspTime + 0.5;
+        int currentNoteIndex = 0;
+    
+        while (currentNoteIndex < _notesList.Count)
+        {
+            double currentDspTime = AudioSettings.dspTime;
+            double currentPlaybackTime = (currentDspTime - _startDspTime) * _playbackSpeed;
+            CurrentPlaybackTime = (float)currentPlaybackTime;
+        
+            while (currentNoteIndex < _notesList.Count)
+            {
+                var noteInfo = _notesList[currentNoteIndex];
+    
+                if (noteInfo.StartTime <= currentPlaybackTime)
+                {
+                    double scheduledDspTime = _startDspTime + (noteInfo.StartTime / _playbackSpeed);
+        
+                    // Если время уже прошло - играй сразу, но с поправкой
+                    if (scheduledDspTime < AudioSettings.dspTime)
+                    {
+                        scheduledDspTime = AudioSettings.dspTime + 0.01; // Небольшой буфер
+                    }
+        
+                    _keyboard.PressKeyScheduled(
+                        noteInfo.MidiNote, 
+                        noteInfo.Velocity, 
+                        scheduledDspTime, 
+                        noteInfo.Duration
+                    );
+        
                     currentNoteIndex++;
                 }
                 else
@@ -166,11 +160,10 @@ public class MidiPlayer : MonoBehaviour
                     break;
                 }
             }
-            
+        
             yield return null;
         }
-        
+    
         _isPlaying = false;
-        Debug.Log("MIDI воспроизведение завершено");
     }
 }

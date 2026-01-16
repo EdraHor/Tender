@@ -226,10 +226,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _keyboard: {fileID: 4598288733879911775}
-  _midiFile: {fileID: 4900000, guid: fa2234e2a1511a74ca56caef5f894e1a, type: 3}
+  _midiFile: {fileID: 4900000, guid: 31b7d402382bfb44e9ef003150b7297b, type: 3}
   _playbackSpeed: 1
-  _totalNotes: 3203
-  _durationSeconds: 158.60896
+  _totalNotes: 1306
+  _durationSeconds: 203.99896
+  _allowedChannels: 0000000001000000030000000400000005000000
 --- !u!4 &41901821
 Transform:
   m_ObjectHideFlags: 0
@@ -259,12 +260,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _midiPlayer: {fileID: 41901820}
   _keyboard: {fileID: 4598288733879911775}
-  _lookAheadTime: 2
-  _spawnDistance: 5
+  _lookAheadTime: 5
+  _spawnDistance: 20
   _despawnLineOffset: 0.5
   _noteDirection: 3
   _noteMaterial: {fileID: 2100000, guid: 69fc247d494d810448ebbccd30178e79, type: 2}
-  _noteWidth: 0.05
+  _noteWidth: 0.04
   _noteHeight: 0.01
   _depthMultiplier: 0.5
   _whiteKeyNoteColor: {r: 0, g: 1, b: 1, a: 1}
@@ -2173,7 +2174,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3a2c175e09b9d94295ed5b5d57c360b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _velocity: 0.5
+  _useManualVelocity: 0
+  _manualVelocity: 0.5
+  _velocitySensitivity: 1
   _showDebugInfo: 1
 --- !u!1001 &516221765
 PrefabInstance:
@@ -4764,8 +4767,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "1. \u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0430
-    \u043C\u0435\u0436\u0434\u0443 \u043D\u0430\u0436\u0430\u0442\u0438\u0435\u043C"
+  m_text: "1. \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u043D\u043E\u0442\u0430
+    \u043E\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0441\u044F
+    \u043F\u0440\u043E\u0441\u0442\u043E \u0438 \u043D\u0435 \u0438\u0441\u0447\u0435\u0437\u0430\u0435\u0442\n2.
+    IK \u0440\u0438\u0433 \u0440\u0443\u043A"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4830,7 +4835,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: -0.023694038, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   _SortingLayer: 0
@@ -4892,7 +4897,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 727305193}
   m_LocalRotation: {x: -0, y: -1, z: -0, w: 0.00000058114523}
-  m_LocalPosition: {x: 0, y: 0, z: -2.7500057}
+  m_LocalPosition: {x: 0, y: 0, z: -2.7500043}
   m_LocalScale: {x: 0.1, y: 0.1, z: 0.1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -4900,8 +4905,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 5.000005, y: 3.75}
-  m_SizeDelta: {x: 20, y: 5}
+  m_AnchoredPosition: {x: 6.7194, y: 3.008}
+  m_SizeDelta: {x: 60.6102, y: 19.8396}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!4 &730098975 stripped
 Transform:
@@ -12992,6 +12997,10 @@ MonoBehaviour:
   - {fileID: 224416898042949497}
   _samplesPath: Audio/SalamanderPiano
   _allowPitchShifting: 1
+  _maxRotation: 3
+  _pressSpeed: 0.05
+  _releaseSpeed: 0.1
+  _fadeOutDuration: 0.1
 --- !u!114 &4598288733879911776
 MonoBehaviour:
   m_ObjectHideFlags: 0
