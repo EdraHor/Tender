@@ -25,6 +25,9 @@ public class PianoKey : MonoBehaviour
     
     public bool IsPressed => _isPressed;
     
+    public static event System.Action<int> OnAnyKeyPressed;
+    public static event System.Action<int> OnAnyKeyReleased;
+    
     private void Awake()
     {
         _triggerCollider = GetComponent<BoxCollider>();
@@ -134,6 +137,7 @@ public class PianoKey : MonoBehaviour
         {
             _isPressed = true;
             PlayNote(velocity);
+            OnAnyKeyPressed?.Invoke(MidiNote);
             
             if (_animationCoroutine != null)
                 StopCoroutine(_animationCoroutine);
@@ -147,6 +151,7 @@ public class PianoKey : MonoBehaviour
         {
             _isPressed = false;
             StopNote();
+            OnAnyKeyReleased?.Invoke(MidiNote);
             
             if (_animationCoroutine != null)
                 StopCoroutine(_animationCoroutine);
