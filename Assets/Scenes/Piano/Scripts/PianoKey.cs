@@ -213,8 +213,13 @@ public class PianoKey : MonoBehaviour
     
     private IEnumerator AnimatePressAndRelease(float holdDuration)
     {
+        // 1. Сообщаем системе, что клавиша нажата (для IK рук)
+        OnAnyKeyPressed?.Invoke(MidiNote);
+        _isPressed = true;
+
         Quaternion targetRotation = _initialRotation * Quaternion.Euler(0, -_maxRotation, 0);
-        
+    
+        // Анимация нажатия
         while (Quaternion.Angle(_visualTransform.localRotation, targetRotation) > 0.1f)
         {
             _visualTransform.localRotation = Quaternion.Lerp(
@@ -224,12 +229,17 @@ public class PianoKey : MonoBehaviour
             );
             yield return null;
         }
-        
+    
         _visualTransform.localRotation = targetRotation;
+    
+        // Ждем длительность ноты
         yield return new WaitForSeconds(holdDuration);
-        
+    
+        // 2. Сообщаем системе, что клавиша отпущена
         _isPressed = false;
-        
+        OnAnyKeyReleased?.Invoke(MidiNote);
+    
+        // Анимация возврата
         while (Quaternion.Angle(_visualTransform.localRotation, _initialRotation) > 0.1f)
         {
             _visualTransform.localRotation = Quaternion.Lerp(
@@ -239,7 +249,7 @@ public class PianoKey : MonoBehaviour
             );
             yield return null;
         }
-        
+    
         _visualTransform.localRotation = _initialRotation;
     }
 }
