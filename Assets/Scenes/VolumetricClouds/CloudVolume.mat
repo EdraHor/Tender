@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CloudVolume
+  m_Shader: {fileID: 4800000, guid: 8c46a71d7e2d3a84c912f2cb60c879d0, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _NoiseTex:
+        m_Texture: {fileID: 11700000, guid: 31a71e24c86d32a4995c50e9ebb05953, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints:
+    - _StepCount: 64
+    m_Floats:
+    - _AntiTilingScale: 0.35
+    - _AntiTilingStrength: 1
+    - _BottomFade: 0.042
+    - _Coverage: 1
+    - _Density: 6.1
+    - _DetailErosion: 0.16
+    - _DetailScale: 0.2
+    - _Distortion: 1.24
+    - _EdgeSoftness: 2.01
+    - _LightAbsorption: 1.06
+    - _LocalLightIntensity: 50
+    - _MacroScale: 0.29
+    - _MultiScattering: 0.3
+    - _OpacityBoost: 1.02
+    - _SilverLining: 1
+    - _TowerHeight: 0.856
+    m_Colors:
+    - _CloudColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowColor: {r: 0.29999998, g: 0.39999998, b: 0.5, a: 1}
+    - _WindSpeed: {r: 0, g: -0.1, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
