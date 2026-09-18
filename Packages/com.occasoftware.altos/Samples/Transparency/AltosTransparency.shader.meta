@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: c1c5a002a780f924c90a39fd6b0c9415
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Samples/Transparency/AltosTransparency.shader
+  uploadId: 903038

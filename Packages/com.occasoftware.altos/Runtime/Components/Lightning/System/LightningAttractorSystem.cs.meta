@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 1e7a29f051cfaf24c8e52be19dcbd42a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Runtime/Components/Lightning/System/LightningAttractorSystem.cs
+  uploadId: 903038

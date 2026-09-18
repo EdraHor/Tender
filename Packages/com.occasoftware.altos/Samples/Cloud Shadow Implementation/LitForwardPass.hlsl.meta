@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 004ce92ba5d3d7746b4b69c301668675
+timeCreated: 1488965025
+licenseType: Store
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Samples/Cloud Shadow Implementation/LitForwardPass.hlsl
+  uploadId: 903038

@@ -26,7 +26,7 @@ public class GraphicsManager : MonoBehaviour
         new GraphicsPreset { name = "Низкое", shadowDistance = 0f, mainLightShadowResolution = 512, additionalLightShadowResolution = 512, shadowCascades = 1, vSync = false },
         new GraphicsPreset { name = "Среднее", shadowDistance = 75f, mainLightShadowResolution = 1024, additionalLightShadowResolution = 512, shadowCascades = 2, vSync = false },
         new GraphicsPreset { name = "Высокое", shadowDistance = 150f, mainLightShadowResolution = 2048, additionalLightShadowResolution = 1024, shadowCascades = 2, vSync = true },
-        new GraphicsPreset { name = "Ультра", shadowDistance = 250f, mainLightShadowResolution = 4096, additionalLightShadowResolution = 2048, shadowCascades = 4, vSync = true }
+        new GraphicsPreset { name = "Ультра", shadowDistance = 250f, mainLightShadowResolution = 4096, additionalLightShadowResolution = 4096, shadowCascades = 4, vSync = true }
     };
 
     private UniversalRenderPipelineAsset urpAsset;

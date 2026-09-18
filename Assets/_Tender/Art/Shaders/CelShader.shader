@@ -153,5 +153,69 @@ Shader "Custom/SimpleCelShader"
             }
             ENDHLSL
         }
+    
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+
+            ZWrite On
+            ColorMask R
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 4.5
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            float4 vert(float3 positionOS : POSITION) : SV_POSITION
+            {
+                return TransformObjectToHClip(positionOS);
+            }
+
+            half4 frag() : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            // Without this pass the object is missing from the depth texture (the renderer builds it
+            // with a DepthNormals prepass because SSAO wants normals) and the volumetric haze paints
+            // the sky and far hills over it as if it were glass.
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 4.5
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD0;
+            };
+
+            Varyings vert(float3 positionOS : POSITION, float3 normalOS : NORMAL)
+            {
+                Varyings OUT;
+                OUT.positionCS = TransformObjectToHClip(positionOS);
+                OUT.normalWS = TransformObjectToWorldNormal(normalOS);
+                return OUT;
+            }
+
+            half4 frag(Varyings IN) : SV_Target
+            {
+                return half4(normalize(IN.normalWS), 0.0);
+            }
+            ENDHLSL
+        }
     }
+
 }

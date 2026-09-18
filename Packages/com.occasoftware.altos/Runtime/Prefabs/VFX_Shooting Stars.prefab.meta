@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 70a69a9beee2b574ea7aa564c6b800cf
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Runtime/Prefabs/VFX_Shooting Stars.prefab
+  uploadId: 903038

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 67129db75d5a20d4ab02e6ed482423d1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11700000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Textures/Noise Textures/VolumeTextures/Worley/Worley128.asset
+  uploadId: 903038

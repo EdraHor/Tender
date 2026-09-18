@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7b43507e8f93fb848a77567a2b0d6e40
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Samples/Precipitation Occlusion/PrecipitationOcclusion.unity
+  uploadId: 903038

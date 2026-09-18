@@ -1,0 +1,111 @@
+#pragma kernel CSInteract
+
+#include "GrassInteraction.hlsl"
+
+// The grass's memory of being touched, in a square of ground around the camera. Run once a frame by
+// GrassInteraction.cs, reading last frame's map and writing this frame's.
+//
+// Each texel holds what has happened to the grass on that bit of ground:
+//   RG = which way it is pushed, and how hard (a vector: its length is 0..1)
+//   B  = how flattened it is, 0..1
+//   A  = how much of it is gone, 0..1
+//
+// Every frame each value moves towards what the shapes touching it right now want. It moves at the
+// shape's press rate when the shape wants MORE than is there, and back at the grass's own rate when it
+// wants less: pushed grass springs back up in a moment, flattened or cleared grass takes minutes to
+// grow back. That second rate is what leaves a trail behind someone walking through a meadow.
+
+RWTexture2D<float4> _State;                 // this frame, written
+Texture2D<float4> _Previous;                // last frame, read
+
+StructuredBuffer<GrassShape> _Shapes;
+int _ShapeCount;
+
+Texture2D<float> _HeightMap;                // world Y, baked by GrassField
+SamplerState grass_linear_clamp_sampler;
+float2 _TerrainOrigin;
+float2 _TerrainSize;
+float2 _HeightMapUVScaleOffset;             // see GrassPlacement.compute
+
+float2 _MapOrigin;                          // world XZ of texel (0, 0)'s corner
+float  _TexelSize;                          // metres
+int    _Resolution;
+int2   _Shift;                              // texels the map moved since last frame, to follow the camera
+
+float  _DeltaTime;
+float  _SpringBackRate;                     // 1 / seconds
+float  _RegrowRate;                         // 1 / seconds
+float  _GrassHeight;                        // how tall a column of grass objects can touch
+
+float SampleHeight(float2 worldXZ)
+{
+    float2 uv = (worldXZ - _TerrainOrigin) / _TerrainSize * _HeightMapUVScaleOffset.x + _HeightMapUVScaleOffset.y;
+    return _HeightMap.SampleLevel(grass_linear_clamp_sampler, uv, 0);
+}
+
+/// Move `now` towards `target` for this frame, at `rate` per second. Written with an exponential so a
+/// rate of thousands is simply "arrive this frame", however long the frame was.
+float Approach(float rate)
+{
+    return 1.0 - exp(-rate * _DeltaTime);
+}
+
+[numthreads(8, 8, 1)]
+void CSInteract(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)_Resolution || id.y >= (uint)_Resolution) return;
+
+    // The map moves with the camera a whole texel at a time, so last frame this same patch of ground
+    // was `_Shift` texels over. Ground that has just come into the map starts untouched.
+    int2 before = int2(id.xy) + _Shift;
+    bool known = all(before >= 0) && all(before < _Resolution);
+    float4 state = known ? _Previous[before] : 0.0;
+
+    float2 xz = _MapOrigin + (float2(id.xy) + 0.5) * _TexelSize;
+    float3 ground = float3(xz.x, SampleHeight(xz), xz.y);
+
+    // What the shapes touching this spot want right now. For each effect the strongest shape wins.
+    float bend = 0.0;
+    float2 bendAway = 0.0;
+    float flatten = 0.0;
+    float remove = 0.0;
+    float pressRate = 0.0;
+
+    for (int i = 0; i < _ShapeCount; i++)
+    {
+        GrassShape shape = _Shapes[i];
+        float2 away;
+        float touch = GrassShapeTouch(shape, ground, _GrassHeight, away);
+        if (touch <= 0.0) continue;
+
+        int effect = (int)shape.effect;
+        if (effect == GRASS_EFFECT_REMOVE)
+        {
+            remove = max(remove, touch);
+        }
+        else
+        {
+            // Flattening grass also shoves it aside as it goes, so both of these push.
+            if (touch > bend) { bend = touch; bendAway = away; }
+            if (effect == GRASS_EFFECT_FLATTEN) flatten = max(flatten, touch);
+        }
+        pressRate = max(pressRate, shape.pressRate);
+    }
+
+    float press = Approach(pressRate);
+
+    // Pushed: towards the shove while something is pressing harder than the grass is already bent,
+    // otherwise back up at the spring-back rate.
+    float2 pushed = bendAway * bend;
+    bool pressing = bend > length(state.rg) - 1e-3;
+    state.rg = lerp(state.rg, pushed, pressing ? press : Approach(_SpringBackRate));
+
+    // Flattened and gone: in at the press rate, back out as the grass regrows.
+    state.b = lerp(state.b, flatten, flatten > state.b ? press : Approach(_RegrowRate));
+    state.a = lerp(state.a, remove, remove > state.a ? press : Approach(_RegrowRate));
+
+    // Exponential recovery never quite reaches zero. Let it, so an untouched field is exactly untouched.
+    state *= step(1e-3, abs(state));
+
+    _State[id.xy] = state;
+}

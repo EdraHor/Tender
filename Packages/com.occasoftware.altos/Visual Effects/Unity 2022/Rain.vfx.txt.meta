@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f9ad9358dd34632498d6dd2dff0f6204
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Visual Effects/Unity 2022/Rain.vfx.txt
+  uploadId: 903038

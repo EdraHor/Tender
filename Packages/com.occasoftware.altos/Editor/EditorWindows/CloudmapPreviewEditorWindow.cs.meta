@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: afff5db6a61934f4299fdeb1558971a4
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Editor/EditorWindows/CloudmapPreviewEditorWindow.cs
+  uploadId: 903038

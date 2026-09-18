@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6e0abd0f16e18a347b889526f6eb2795
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Runtime/Prefabs/VFX_Comets.prefab
+  uploadId: 903038

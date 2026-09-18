@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CloudHero
+  m_Shader: {fileID: 4800000, guid: 3e33e630cfa349e439430f70965ea28b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _NoiseTex:
+        m_Texture: {fileID: 11700000, guid: bc15e5e6af5b7b94caad82e99e566bdc, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints:
+    - _LightSteps: 6
+    - _MaxSteps: 112
+    m_Floats:
+    - _Absorption: 0.8
+    - _Anvil: 1
+    - _BaseContrast: 2
+    - _BaseDrift: 0.12
+    - _Billow: 0.45
+    - _Blend: 0.12
+    - _BottomFade: 0.14
+    - _CloudSize: 1
+    - _Coverage: 0.85
+    - _DensityMul: 6
+    - _DetailScale: 0.16
+    - _EmptyStep: 2
+    - _Erosion: 0.35
+    - _Evolve: 1
+    - _LightStepSize: 2
+    - _LodRange: 380
+    - _LodStart: 150
+    - _Lumpiness: 0.35
+    - _NoiseHigh: 0.85
+    - _NoiseLow: 0.4
+    - _NoiseScale: 0.04
+    - _PowderStrength: 0.28
+    - _RadiusInner: 0.12
+    - _RadiusOuter: 1
+    - _ShellWidth: 3
+    - _Silver: 1.1
+    - _StepSize: 1
+    - _ToonSteps: 0
+    - _TopBreakup: 0.7
+    - _TopStart: 0.5
+    - _WarpScale: 0.012
+    - _WarpStrength: 0
+    m_Colors:
+    - _AmbientBottom: {r: 0.56, g: 0.63, b: 0.75, a: 1}
+    - _AmbientTop: {r: 1, g: 1, b: 1, a: 1}
+    - _LitColor: {r: 1, g: 1, b: 0.98, a: 1}
+    - _ShadowColor: {r: 0.62, g: 0.69, b: 0.83, a: 1}
+    - _WindSpeed: {r: 0.5, g: 0, b: 0.15, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

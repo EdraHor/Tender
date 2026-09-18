@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e1ab5a55c83e854418ed0b6660dd09bb
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Visual Effects/Unity 2022/Comets.vfx.txt
+  uploadId: 903038

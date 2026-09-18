@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 455cf50e24f96d749b9be04eb346406b
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  preprocessorOverride: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Shaders/Clouds/UpscaleClouds.shader
+  uploadId: 903038

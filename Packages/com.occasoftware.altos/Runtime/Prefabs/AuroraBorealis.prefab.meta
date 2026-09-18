@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 9a84d8e3b9ea4d243bb034419df2aebb
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Runtime/Prefabs/AuroraBorealis.prefab
+  uploadId: 903038

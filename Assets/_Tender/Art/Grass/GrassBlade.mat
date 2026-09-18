@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: GrassBlade
+  m_Shader: {fileID: 4800000, guid: 69c34374878886345be3abc494c95121, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BladeNormal: 0.35
+    - _EdgeThicken: 0.8
+    - _FlowerAmount: 0.14
+    - _FlowerStart: 0.82
+    - _MacroAmount: 0.6
+    - _MacroScale: 22
+    - _MaxLean: 1.35
+    - _RootAO: 0.68
+    - _Specular: 0.06
+    - _Stiffness: 0.35
+    - _Translucency: 1
+    - _TuftRound: 1.5
+    - _Wrap: 0.6
+    m_Colors:
+    - _DryColor: {r: 0.8, g: 0.755, b: 0.38, a: 1}
+    - _FlowerColor: {r: 0.94, g: 0.95, b: 0.88, a: 1}
+    - _RootColor: {r: 0.105, g: 0.215, b: 0.06, a: 1}
+    - _TipColor: {r: 0.6, g: 0.87, b: 0.36, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

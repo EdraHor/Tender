@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: f9891e06c29ef0f499874d26d9c8281d
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/ShaderLibrary/Common.hlsl
+  uploadId: 903038

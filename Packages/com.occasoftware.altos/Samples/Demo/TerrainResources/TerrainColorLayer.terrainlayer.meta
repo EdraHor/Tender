@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 10851d3adcd2c3a4cb91485347d2d29f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Samples/Demo/TerrainResources/TerrainColorLayer.terrainlayer
+  uploadId: 903038

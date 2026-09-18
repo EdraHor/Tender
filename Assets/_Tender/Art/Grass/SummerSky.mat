@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: SummerSky
+  m_Shader: {fileID: 4800000, guid: e7d6636eeda38cc4f909b88141419ada, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _CloudHeight: 1200
+    - _CloudScale: 950
+    - _Coverage: 0.4
+    - _HorizonFade: 0.09
+    - _HorizonFalloff: 2.4
+    - _Shading: 0.72
+    - _Silver: 0.85
+    - _Softness: 0.16
+    - _SunGlow: 0.3
+    - _SunSize: 1.2
+    - _WindAngle: 140
+    - _WindSpeed: 7
+    m_Colors:
+    - _CloudColor: {r: 1, g: 0.99, b: 0.975, a: 1}
+    - _CloudShadeColor: {r: 0.585, g: 0.64, b: 0.735, a: 1}
+    - _GroundColor: {r: 0.3, g: 0.285, b: 0.24, a: 1}
+    - _HorizonColor: {r: 0.72, g: 0.83, b: 0.9, a: 1}
+    - _SunColor: {r: 1, g: 0.965, b: 0.895, a: 1}
+    - _ZenithColor: {r: 0.145, g: 0.34, b: 0.7, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

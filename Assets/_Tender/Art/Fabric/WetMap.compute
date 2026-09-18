@@ -1,0 +1,83 @@
+// The wet map of one garment: a texture in its UV space, 0 dry .. 1 saturated per texel - how
+// much water the cloth holds there.
+//
+// Two things happen to it once a frame:
+//   Settle  the water moves and goes. Moves: capillary wicking carries it from wetter thread to
+//           drier thread, which is why a drop's spot keeps growing after the drop has landed - it
+//           is plain diffusion, and the amount of water is conserved as it spreads. Goes: it
+//           evaporates, faster where there is more of it, slower for the last damp trace.
+//   Splat   every raindrop that landed this frame adds its water to the texels whose world
+//           position (from the position map, see ClothUnwrap.shader) is within the drop's radius.
+//
+// Settle reads one map and writes another (a texel needs its neighbours' OLD values), so
+// Wettable.cs keeps two and swaps them.
+
+#pragma kernel Settle
+#pragma kernel Splat
+
+Texture2D<float> _WetMapIn;
+RWTexture2D<float> _WetMapOut;
+RWTexture2D<float> _WetMap;
+Texture2D<float4> _PositionMap;     // xyz world position of the texel, w = 1 where the mesh is
+StructuredBuffer<float4> _Hits;     // xyz where a drop landed, w its radius (m)
+int _HitCount;
+int _Resolution;
+float _DryStep;                     // seconds this frame / seconds to dry out
+float _Wicking;                     // m^2 per second: how fast water spreads through this cloth
+float _DeltaTime;
+
+[numthreads(8, 8, 1)]
+void Settle(uint3 id : SV_DispatchThreadID)
+{
+    float4 texel = _PositionMap[id.xy];
+    float wet = _WetMapIn[id.xy];
+
+    // How big this texel is in the world, along each axis of the map, from its neighbours:
+    // diffusion happens in metres, not texels, so a coarse map and a fine one spread a spot the
+    // same real distance, and a UV layout squeezed one way does not spread faster that way.
+    int2 at = int2(id.xy);
+    int last = _Resolution - 1;
+    float dx = max(distance(texel.xyz, _PositionMap[int2(min(at.x + 1, last), at.y)].xyz), 1e-4);
+    float dy = max(distance(texel.xyz, _PositionMap[int2(at.x, min(at.y + 1, last))].xyz), 1e-4);
+    float rateX = min(_Wicking * _DeltaTime / (dx * dx), 0.2);   // 0.2: stays stable
+    float rateY = min(_Wicking * _DeltaTime / (dy * dy), 0.2);
+
+    // Diffusion: move towards the neighbours' average, per axis. Only across the cloth itself -
+    // the gaps between UV islands hold no thread for water to travel along.
+    float sumX = 0.0, countX = 0.0, sumY = 0.0, countY = 0.0;
+    int2 left = int2(max(at.x - 1, 0), at.y), right = int2(min(at.x + 1, last), at.y);
+    int2 down = int2(at.x, max(at.y - 1, 0)), up = int2(at.x, min(at.y + 1, last));
+    if (_PositionMap[left].w > 0.5) { sumX += _WetMapIn[left]; countX += 1.0; }
+    if (_PositionMap[right].w > 0.5) { sumX += _WetMapIn[right]; countX += 1.0; }
+    if (_PositionMap[down].w > 0.5) { sumY += _WetMapIn[down]; countY += 1.0; }
+    if (_PositionMap[up].w > 0.5) { sumY += _WetMapIn[up]; countY += 1.0; }
+    if (countX > 0.0) wet += rateX * (sumX / countX - wet);
+    if (countY > 0.0) wet += rateY * (sumY / countY - wet);
+
+    // Evaporation.
+    wet = max(wet - _DryStep * (0.3 + wet), 0.0);
+    _WetMapOut[id.xy] = wet;
+}
+
+[numthreads(8, 8, 1)]
+void Splat(uint3 id : SV_DispatchThreadID)
+{
+    float4 texel = _PositionMap[id.xy];
+    if (texel.w < 0.5) return;
+
+    // A drop carries more water than the cloth under it can hold: 1 is saturated, and a drop
+    // lands at 3, so the excess wicks outward and the spot grows dark and stays dark until the
+    // water has spread thin. Two drops on one spot add up and reach further. Capped so a puddle
+    // cannot form in the map.
+    float wet = _WetMap[id.xy];
+    for (int i = 0; i < _HitCount; i++)
+    {
+        float4 hit = _Hits[i];
+        // A drop does not stay a dot: it runs a little way down before the cloth holds it, so the
+        // spot reaches two and a half times further below the landing point than above it.
+        float3 away = texel.xyz - hit.xyz;
+        away.y = away.y < 0.0 ? away.y * 0.4 : away.y;
+        wet += 3.0 * (1.0 - smoothstep(hit.w * 0.5, hit.w, length(away)));
+    }
+    _WetMap[id.xy] = min(wet, 4.0);
+}

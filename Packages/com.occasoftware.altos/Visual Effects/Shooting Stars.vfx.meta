@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ce1299853d476834aaba4d2f408917e0
+VisualEffectImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Visual Effects/Shooting Stars.vfx
+  uploadId: 903038

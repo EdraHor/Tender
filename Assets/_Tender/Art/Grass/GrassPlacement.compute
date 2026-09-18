@@ -1,0 +1,378 @@
+#pragma kernel CSPlace
+
+#include "GrassTypes.hlsl"
+#include "GrassInteraction.hlsl"
+
+// Decides, every frame and entirely on the GPU, which blades of grass exist right now.
+//
+// The field is not stored anywhere. There is no list of blades in memory, no spawning, no
+// pooling. A grid of candidate positions is laid over the ground around the camera, one thread
+// per candidate, and each thread answers a single question: "is there a blade here, and if so
+// what kind, and which detail level draws it?" Survivors are appended to one of three buffers and
+// drawn with three indirect draw calls.
+//
+// That is the whole trick, and it is why the blade count can be in the millions: nothing is ever
+// created or destroyed, and the CPU never learns how many blades there were.
+//
+// The candidate grid is as dense as the DENSEST grass type. A sparser type simply keeps a share of
+// the candidates that land in it.
+
+AppendStructuredBuffer<GrassInstance> _Lod0;
+AppendStructuredBuffer<GrassInstance> _Lod1;
+AppendStructuredBuffer<GrassInstance> _Lod2;
+
+// Blades carrying a seed head are appended a SECOND time, into their own buffer, and a separate
+// draw puts a little disc on each one's tip. Deciding here rather than in the shader is what
+// keeps the two in step: the blade shader paints a pale tip on distant blades where the disc is
+// no longer drawn, and both read the same flag off the same instance.
+AppendStructuredBuffer<GrassInstance> _Flowers;
+
+Texture2D<float> _HeightMap;               // world Y, baked once from the terrain
+SamplerState grass_linear_clamp_sampler;
+
+// Painted control map laid over the terrain. WHITE MEANS LEAVE IT ALONE - every channel is a
+// multiplier, so a blank map changes nothing and painting only ever takes grass away. That is
+// what makes the brush safe to hand to somebody: there is no way to paint yourself into a
+// field you cannot get back.
+//   R = how much grass grows here     G = how tall it grows     B = how lush and green it is
+Texture2D<float4> _PaintMap;
+float _UsePaintMap;
+
+// Painted type zones over the same terrain. BLACK MEANS NOTHING PAINTED - each channel ADDS the
+// zone of one type (R type 1, G type 2, B type 3, A type 4) on top of that type's own noise zones.
+Texture2D<float4> _TypeMap;
+float _UseTypeMap;
+
+float2 _TerrainOrigin;                     // world XZ of the terrain's corner
+float2 _TerrainSize;                       // world XZ extent of the terrain
+
+// Turns a 0..1 position across the terrain into a heightmap UV.
+//
+// The two are NOT the same. A terrain's heights are samples at the CORNERS of its cells, so
+// sample j sits at j / (resolution - 1) across the terrain, while a texture's texel j sits at
+// (j + 0.5) / resolution. Feeding the terrain fraction straight to the sampler shifts every
+// height by half a texel, which tilts the whole field slightly downhill.
+//   x = (resolution - 1) / resolution,  y = 0.5 / resolution
+float2 _HeightMapUVScaleOffset;
+
+// The grid's corner as an INTEGER cell index, not a world position.
+//
+// It has to be an integer. A blade's randomness is keyed on the patch of ground it grows from,
+// and if that key is a float built as origin + i * cellSize it comes out very slightly different
+// depending on where the camera was standing when the origin was snapped. The values agree to
+// six decimal places and a hash does not care: the field re-randomises every time you walk
+// across a cell boundary. Integers cannot drift.
+int    _GridOriginX;                       // in THIS ring's cells
+int    _GridOriginZ;
+uint   _GridSide;                          // candidates along each side of the square
+float  _CellSize;                          // metres between candidates at full density
+
+// The field is placed in RINGS around the camera, one dispatch each, and every ring reaches twice
+// as far as the one inside it with candidates twice as far apart:
+//
+//     ring 0:  0 .. R      one candidate per cell
+//     ring 1:  R .. 2R     one per 2x2 cells
+//     ring 2:  2R .. 4R    one per 4x4 cells   ...and so on out to the view distance.
+//
+// Doubling the distance quadruples a ring's area and quartering the candidates pays for it, so
+// every ring costs the same and the field can reach hundreds of metres for the price of a few
+// rings. The one rule that keeps the seams invisible: a far ring's blades are a SUBSET of the near
+// ring's - the same world cells, the same hash keys, the same blades. Walking away from a patch
+// never swaps its grass for different grass. Three blades in four quietly thin away, each at its
+// own distance, and the fourth carries on, just wider.
+int    _RingLevel;                         // 0 for the nearest ring, then 1, 2, 3...
+float4 _Ring;                              // x = inner distance, y = outer distance, z = 1 on the last ring
+float  _FullDensityDistance;               // outer edge of ring 0
+
+float3 _CameraPosition;
+float4 _FrustumPlanes[6];                  // inward-facing: dot(n, p) + d >= 0 is inside
+
+float2 _LodDistances;                      // x: LOD0 -> LOD1, y: LOD1 -> LOD2
+
+float  _MaxSlope;                          // cosine of the steepest ground that still grows grass
+
+float  _RegionScale;                       // metres across one lush or dry patch
+float  _RegionHeight;                      // how much shorter the poorest patch is, 0..1
+float  _CullMargin;                        // metres of off-screen grass kept anyway
+
+float  _FlowerDistance;                    // past this a seed head is not worth drawing
+
+// What has touched the grass - see GrassInteraction.cs.
+Texture2D<float4> _InteractionMap;         // RG pushed, B flattened, A removed
+float4 _InteractionArea;                   // xy = world XZ of the map's corner, zw = its size (0: no map)
+StructuredBuffer<GrassShape> _Shapes;      // every interactor's shapes this frame
+int    _ShapeCount;
+float  _FlattenedHeight;                   // share of its height fully flattened grass keeps
+float  _TouchableHeight;                   // how tall a column of grass objects can touch
+
+float SampleHeight(float2 worldXZ)
+{
+    float2 local = (worldXZ - _TerrainOrigin) / _TerrainSize;
+    float2 uv = local * _HeightMapUVScaleOffset.x + _HeightMapUVScaleOffset.y;
+    return _HeightMap.SampleLevel(grass_linear_clamp_sampler, uv, 0);
+}
+
+/// How flattened and how cleared the grass rooted here is, 0..1 each.
+///
+/// Inside the map both come from it, with its memory: grass flattened a minute ago is still growing
+/// back. Objects that REMOVE grass are also asked directly, wherever the blade is, so a house past the
+/// map's edge still has no grass through its floor - it just has no memory out there.
+void Touched(float3 rootWS, out float flattened, out float removed)
+{
+    flattened = 0.0;
+    removed = 0.0;
+
+    if (_InteractionArea.z > 0.0)
+    {
+        float2 uv = (rootWS.xz - _InteractionArea.xy) / _InteractionArea.zw;
+        if (all(uv >= 0.0) && all(uv <= 1.0))
+        {
+            float4 touch = _InteractionMap.SampleLevel(grass_linear_clamp_sampler, uv, 0);
+            flattened = touch.b;
+            removed = touch.a;
+        }
+    }
+
+    for (int i = 0; i < _ShapeCount; i++)
+    {
+        if ((int)_Shapes[i].effect != GRASS_EFFECT_REMOVE) continue;
+        float2 away;
+        removed = max(removed, GrassShapeTouch(_Shapes[i], rootWS, _TouchableHeight, away));
+    }
+}
+
+/// Which of a cell's four children at the level below carries on up into it: (0 or 1, 0 or 1).
+///
+/// Picked by hash rather than always the bottom-left one. Always taking the same corner keeps the
+/// far blades on a perfectly regular lattice, and from a hillside that reads as rows of crops.
+int2 ChosenChild(int2 cell, int level)
+{
+    float2 key = float2(cell) + float(level) * 57.13;
+    return int2(GrassHash(key + 0.71) < 0.5 ? 0 : 1,
+                GrassHash(key + 3.17) < 0.5 ? 0 : 1);
+}
+
+/// The full-density cell a candidate of ring `level` stands for.
+///
+/// Walk down one level at a time, taking the chosen child each step, until reaching ring 0's
+/// grid. Ring 1 asks the same question one step later, so it is guaranteed to arrive at a cell
+/// ring 0 also drew: that shared answer is what makes the rings subsets of each other.
+int2 FineCell(int2 cell, int level)
+{
+    for (int step = level; step > 0; step--)
+        cell = cell * 2 + ChosenChild(cell, step);
+    return cell;
+}
+
+/// Where the centre of the clump owning this point is.
+///
+/// Clumps are jittered points, one per clump-sized cell; the nearest of the 3x3 around the point
+/// wins. That carves the ground into irregular tufts, which is the shape real grass grows in and
+/// the single biggest step from "a lawn of identical sticks" to "a meadow".
+float2 ClumpCentre(float2 worldXZ, float clumpSize, out float2 clumpCell)
+{
+    float2 home = floor(worldXZ / clumpSize);
+    float nearest = 1e9;
+    float2 centre = worldXZ;
+    clumpCell = home;
+
+    for (int y = -1; y <= 1; y++)
+    {
+        for (int x = -1; x <= 1; x++)
+        {
+            float2 cell = home + float2(x, y);
+            float2 candidate = (cell + float2(GrassHash(cell + 1.7), GrassHash(cell + 9.2))) * clumpSize;
+            float2 offset = candidate - worldXZ;
+            float distanceSq = dot(offset, offset);
+            if (distanceSq < nearest)
+            {
+                nearest = distanceSq;
+                centre = candidate;
+                clumpCell = cell;
+            }
+        }
+    }
+
+    return centre;
+}
+
+[numthreads(8, 8, 1)]
+void CSPlace(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= _GridSide || id.y >= _GridSide) return;
+
+    // The full-density cell this thread stands for, as exact integers. Everything random about
+    // the blade is keyed on THIS, not on a world position or on which ring is asking, so a blade
+    // keeps its spot, its height and its facing no matter where the camera stands - which is the
+    // difference between a field and a shimmering mess.
+    int2 ringCell = int2(_GridOriginX, _GridOriginZ) + int2(id.xy);
+    int2 worldCell = FineCell(ringCell, _RingLevel);
+    float2 key = float2(worldCell);
+
+    float2 cellWorld = key * _CellSize;
+    float jitterX = GrassHash(key + 0.13);
+    float jitterZ = GrassHash(key + 7.71);
+    float2 worldXZ = cellWorld + float2(jitterX, jitterZ) * _CellSize;
+
+    // What kind of grass grows here. Decided from the candidate's own spot and key, never from
+    // anything about the camera, so a blade keeps its type from every ring and every distance.
+    float4 painted = 0.0;
+    if (_UseTypeMap > 0.5)
+        painted = _TypeMap.SampleLevel(grass_linear_clamp_sampler, (worldXZ - _TerrainOrigin) / _TerrainSize, 0);
+
+    float zone;
+    int typeIndex = GrassPickType(worldXZ, painted, key, zone);
+    GrassType type = _GrassTypes[typeIndex];
+
+    // The grid is laid for the densest type. A sparser one keeps its share of the candidates, spread
+    // out evenly (GrassEvenThreshold) - a coin per blade kept the right count but left bald patches
+    // underfoot. An overlay type already took only its share while it was being picked; the rest of
+    // the candidates went to the grass underneath.
+    if (type.overlay < 0.5 && GrassEvenThreshold(worldCell) >= type.densityShare) return;
+
+    // Gather the root in towards its clump's centre. Done before anything reads the position, so
+    // the height, the slope and the distance all belong to where the blade actually grows.
+    float2 clumpCell;
+    float2 toCentre = ClumpCentre(worldXZ, type.clumpSize, clumpCell) - worldXZ;
+    worldXZ += toCentre * type.clumpPull;
+
+    // Off the terrain entirely.
+    float2 local = (worldXZ - _TerrainOrigin) / _TerrainSize;
+    if (any(local < 0.0) || any(local > 1.0)) return;
+
+    float3 position = float3(worldXZ.x, SampleHeight(worldXZ), worldXZ.y);
+
+    // Each ring owns only its own band. The grid is a square, so its corners reach into the next
+    // ring out, and its middle overlaps every ring inside it.
+    float distance = length(position - _CameraPosition - _GrassDebugEye); // DEBUG-TEMP
+    if (distance < _Ring.x || distance >= _Ring.y) return;
+
+    // Only one candidate in each 2x2 block carries on into the next ring out. The other three
+    // have to be gone by this ring's outer edge. Each of them goes at its OWN distance, somewhere in
+    // the outer half of the ring, thinning to nothing over a short stretch before it.
+    //
+    // They used to all go together over the same last stretch of the ring, and that stretch was a
+    // circle of shrinking grass round the camera - which walked along with you, so the field looked
+    // as if it were growing up to meet you a few metres ahead. One at a time, at scattered distances,
+    // the ring just gets gradually sparser and there is no edge to see. On the last ring nothing
+    // carries on, and the whole field thins away the same way.
+    int2 parent = int2(floor(float2(ringCell) * 0.5));
+    bool carriesOn = _Ring.z < 0.5 && all(ringCell - parent * 2 == ChosenChild(parent, _RingLevel + 1));
+    float sink = 1.0;
+    if (!carriesOn)
+    {
+        float band = 0.15 * _Ring.y;
+        float start = max(_Ring.x, 0.5 * _Ring.y) + band;       // never inside the ring's inner edge
+        float goneBy = lerp(start, _Ring.y, GrassHash(key + 91.7));
+        sink = 1.0 - smoothstep(goneBy - band, goneBy, distance);
+        if (sink < 0.02) return;
+    }
+
+    // Slope from the baked heightmap: grass does not grow on a cliff.
+    // (Naming this one 'step' would shadow the HLSL intrinsic of the same name, and every call
+    //  to step() later in the kernel would stop compiling.)
+    float reach = _CellSize;
+    float hx = SampleHeight(worldXZ + float2(reach, 0)) - SampleHeight(worldXZ - float2(reach, 0));
+    float hz = SampleHeight(worldXZ + float2(0, reach)) - SampleHeight(worldXZ - float2(0, reach));
+    float3 normal = normalize(float3(-hx, 2.0 * reach, -hz));
+    if (normal.y < _MaxSlope) return;
+
+    // Three kinds of variation, and they do different jobs. The hash makes NEIGHBOURING blades
+    // differ, which is what stops a field looking mown. The clump groups blades into tufts that
+    // share a height and a shade. The region makes whole AREAS differ, which is what gives a
+    // meadow its geography.
+    float3 paint = 1.0;
+    if (_UsePaintMap > 0.5) paint = _PaintMap.SampleLevel(grass_linear_clamp_sampler, local, 0).rgb;
+
+    // Thinning by the painted density is a coin flip per blade, not a shrink: a half-density
+    // patch has half as many blades at full size, rather than every blade at half size.
+    //
+    // >= and not >: the hash can return exactly 0, and with > a fully cleared patch still grew
+    // the odd stray blade - about one in two thousand, right through the middle of a path.
+    if (GrassHash(key + 5.9) >= paint.r) return;
+
+    float clump = GrassHash(clumpCell + 23.1);
+    float region = GrassRegion(worldXZ, _RegionScale) * paint.b;
+    float heightHash = GrassHash(key + 19.7);
+
+    // Towards the edge of its zone a type grows shorter, so a wheat field slopes down into the
+    // meadow around it rather than standing up out of it like a wall.
+    float edge = typeIndex > 0 ? lerp(0.55, 1.0, zone) : 1.0;
+
+    // A blade on its way out goes THIN before it goes short. Narrowing is almost invisible at the
+    // distances this happens - the blade is a pixel or two wide already - while shrinking moves the
+    // top of the grass, and a field whose surface rises and falls as you walk looks alive in the
+    // wrong way.
+    float height = type.height
+                 * (1.0 + (heightHash * 2.0 - 1.0) * type.heightVariation)
+                 * lerp(1.0, 0.6 + 0.8 * clump, type.clumpHeight)
+                 * lerp(1.0 - _RegionHeight, 1.0, region)
+                 * paint.g
+                 * edge
+                 * lerp(0.7, 1.0, sink);
+
+    // Blades grow wider in step with how far apart the rings spread them, so the ground keeps
+    // about the same amount of green on it all the way out. Candidates are twice as far apart
+    // at twice the distance, so the width simply follows distance - from half of ring 0 onwards,
+    // which is where its own thinning begins.
+    float width = type.width * max(1.0, 2.0 * distance / _FullDensityDistance) * sink;
+
+    // Cull against the camera. The sphere has to hold the blade even when the wind lays it flat,
+    // hence the full height as the radius rather than half of it.
+    //
+    // _CullMargin keeps a band of grass that is just off screen. Culling to the exact frustum is
+    // correct and looks broken: swing the camera and the corner arrives a frame late, so you
+    // watch the field grow in. The margin is the cheapest possible fix - a few metres of blades
+    // nobody sees, against grass that visibly assembles itself.
+    float3 centre = position + float3(0, height * 0.5, 0);
+    float slack = height + _CullMargin;
+    for (int i = 0; i < 6; i++)
+    {
+        if (dot(_FrustumPlanes[i].xyz, centre) + _FrustumPlanes[i].w < -slack) return;
+    }
+
+    // Touched by something (GrassInteraction): flattened grass grows short, cleared grass is gone.
+    // Asked only now, after the cheap tests, because it walks the list of objects that remove grass.
+    float flattened, removed;
+    Touched(position, flattened, removed);
+
+    // A half-cleared spot keeps half its blades rather than every blade at half size: each blade has
+    // its own threshold, so the edge of a house's footprint thins out instead of stopping in a line.
+    if (GrassHash(key + 131.3) < removed) return;
+    height *= lerp(1.0, _FlattenedHeight, flattened);
+
+    // A clump is a little fountain: blades face away from its centre, give or take, and the
+    // further out they grow the further they lean out. The ones in the middle stand up.
+    float2 outward = -toCentre;
+    float fromCentre = length(outward);
+    float yaw = atan2(outward.x, outward.y + 1e-5) + (GrassHash(key + 42.0) - 0.5) * 2.0;
+
+    GrassInstance instance;
+    instance.position = position;
+    instance.yaw = yaw;
+    instance.height = height;
+    instance.width = width;
+    instance.region = region;
+    instance.tint = clump;
+    instance.splay = type.clumpSplay * saturate(fromCentre / (0.5 * type.clumpSize)) * (0.5 + 0.5 * GrassHash(key + 61.7));
+    instance.groundNormal = normal.xz;
+    instance.type = typeIndex;
+    instance.zone = zone;
+
+    // Seed heads belong to the good grass: a dry patch is short and bare.
+    float flowerChance = type.headShare * region;
+    instance.flower = step(1.0 - flowerChance, GrassHash(key + 71.3));
+
+    // Which mesh draws it. Each blade has its own share of the distance (GrassLodDistance), so the
+    // switch is scattered rather than a circle, and GrassBlade.shader morphs a blade into the next
+    // mesh's shape before it gets there, so nothing changes at the moment it swaps.
+    float lodDistance = GrassLodDistance(position, _CameraPosition);
+    if (lodDistance < _LodDistances.x)      _Lod0.Append(instance);
+    else if (lodDistance < _LodDistances.y) _Lod1.Append(instance);
+    else                                    _Lod2.Append(instance);
+
+    // An ear is part of the blade itself; only seed heads and blooms are drawn as separate heads.
+    bool drawsHead = (int)type.headStyle != GRASS_HEAD_EAR;
+    // A blade thinning away takes its head with it once it is half gone - scattered, like the thinning.
+    if (drawsHead && instance.flower > 0.5 && lodDistance < _FlowerDistance && sink > 0.5) _Flowers.Append(instance);
+}

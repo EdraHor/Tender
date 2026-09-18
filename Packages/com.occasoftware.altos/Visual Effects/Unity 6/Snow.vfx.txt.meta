@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 4ce0bb0bf589e24478015d4c88e9eeda
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Visual Effects/Unity 6/Snow.vfx.txt
+  uploadId: 903038

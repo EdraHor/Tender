@@ -1,0 +1,58 @@
+#pragma kernel CSCloudShadows
+
+// Paints the sun's cloud-shadow map, every frame, on the GPU.
+//
+// The result is a light COOKIE: a picture the sun shines through. 1 lets the sunlight through, lower
+// takes some of it away. URP multiplies every lit surface's sunlight by it - grass, terrain, rocks,
+// characters - so nothing else in the project has to know cloud shadows exist.
+//
+// A directional cookie is laid out on a plane facing the sun and stretched along the sunbeams. So each
+// texel here stands for one sunbeam. Follow that beam up to the cloud layer and ask the sky's own
+// cloud function how much cloud it passes through: that is how much of the beam reaches the ground.
+
+#include "Assets/_Tender/Art/Clouds/CloudLayer.hlsl"
+
+RWTexture2D<float> _Cookie;
+float _Resolution;
+
+// Where the map sits in the world, worked out by CloudShadows.cs from the light's transform.
+float3 _CornerWS;        // the point on the light's plane under texel (0, 0)'s corner
+float3 _AcrossWS;        // from that corner to the far edge along the map's X
+float3 _UpWS;            // from that corner to the far edge along the map's Y
+float3 _SunTravel;       // the way sunlight travels (the light's forward), pointing down
+
+// The cloud layer, copied from the sky material every frame.
+float  _CloudHeight;
+float  _CloudScale;
+float  _Coverage;
+float  _Softness;
+float2 _Drift;
+
+float _Thickness;        // how much more a cloud blocks the sun than it covers the sky
+float _Darkness;         // how much sunlight a thick cloud takes away
+
+[numthreads(8, 8, 1)]
+void CSCloudShadows(uint3 id : SV_DispatchThreadID)
+{
+    uint size = (uint)_Resolution;
+    if (id.x >= size || id.y >= size) return;
+
+    float2 uv = (id.xy + 0.5) / _Resolution;
+
+    // The sunbeam this texel stands for, and where it crosses the cloud layer.
+    float3 onLightPlane = _CornerWS + _AcrossWS * uv.x + _UpWS * uv.y;
+    float3 onLayer = onLightPlane + _SunTravel * ((_CloudHeight - onLightPlane.y) / _SunTravel.y);
+
+    float cloud = CloudLayerDensity(onLayer.xz, _Drift, _CloudScale, _Coverage, _Softness);
+
+    // The sky paints most of a cloud half see-through against the blue, but even a pale cloud stops
+    // most of the sun coming straight through it. Same outline, much more solid shadow.
+    float blocked = saturate(cloud * _Thickness);
+
+    // Past the map's edge URP keeps reading the border texels. Fading the shadows out over the outer
+    // tenth makes that border plain sunlight, so there is no line where the shadows stop.
+    float2 edge = min(uv, 1.0 - uv);
+    float fade = smoothstep(0.0, 0.1, min(edge.x, edge.y));
+
+    _Cookie[id.xy] = 1.0 - blocked * _Darkness * fade;
+}

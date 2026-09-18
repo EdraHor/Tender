@@ -1,0 +1,43 @@
+// Where puddles form: the dips of the terrain. Baked once from the height map GrassField already
+// holds (Puddles.cs): a texel is a dip by how far it lies below the average of the ground around
+// it, and only where the ground is nearly flat - water does not stand on a slope.
+
+#pragma kernel Bake
+
+Texture2D<float> _HeightMap;        // world Y per texel
+RWTexture2D<float> _PuddleMap;      // 0 dry ground .. 1 a puddle bottom
+int _Resolution;
+float _TexelMetres;                 // metres across one height-map texel
+float _Reach;                       // metres: how far around to look for higher ground
+float _Depth;                       // metres below the surroundings that makes a full puddle
+
+[numthreads(8, 8, 1)]
+void Bake(uint3 id : SV_DispatchThreadID)
+{
+    int last = _Resolution - 1;
+    int reach = max(1, (int)(_Reach / _TexelMetres));
+    int step = max(1, reach >> 1);
+    float here = _HeightMap[id.xy];
+
+    // Average height of a ring of samples around this texel.
+    float around = 0.0;
+    int count = 0;
+    for (int dy = -reach; dy <= reach; dy += step)
+        for (int dx = -reach; dx <= reach; dx += step)
+        {
+            if (dx == 0 && dy == 0) continue;
+            int2 at = clamp(int2(id.xy) + int2(dx, dy), 0, last);
+            around += _HeightMap[at];
+            count++;
+        }
+    around /= max(count, 1);
+
+    // Slope from the nearest neighbours: a puddle needs level ground.
+    float left = _HeightMap[int2(max((int)id.x - 1, 0), id.y)], right = _HeightMap[int2(min((int)id.x + 1, last), id.y)];
+    float down = _HeightMap[int2(id.x, max((int)id.y - 1, 0))], up = _HeightMap[int2(id.x, min((int)id.y + 1, last))];
+    float slope = length(float2(right - left, up - down)) / (2.0 * _TexelMetres);
+    float level = saturate(1.0 - slope / 0.12);
+
+    float dip = saturate((around - here) / _Depth);
+    _PuddleMap[id.xy] = dip * level;
+}

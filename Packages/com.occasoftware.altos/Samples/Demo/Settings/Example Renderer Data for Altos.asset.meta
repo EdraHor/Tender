@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: db26ab50fc44f0f4ea66bfac22452abc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Samples/Demo/Settings/Example Renderer
+    Data for Altos.asset
+  uploadId: 903038

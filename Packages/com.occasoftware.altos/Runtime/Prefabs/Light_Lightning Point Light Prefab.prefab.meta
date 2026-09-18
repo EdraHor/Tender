@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1c2745f43444c314daab3607b5677723
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Runtime/Prefabs/Light_Lightning Point
+    Light Prefab.prefab
+  uploadId: 903038

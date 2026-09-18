@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 19e5f4718cba6164cab1101a43a5128e
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 221227
+  packageName: Altos - Volumetric Clouds, Skybox, and Weather for Unity URP
+  packageVersion: 7.17.2
+  assetPath: Packages/com.occasoftware.altos/Visual Effects/Unity 2022/Lightning_Radial.vfx.txt
+  uploadId: 903038

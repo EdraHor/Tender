@@ -1,0 +1,182 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// A patch of short grass, built as a stack of shells.
+///
+/// It generates ONE mesh that already contains every layer: the same grid of ground triangles
+/// repeated <see cref="_shells"/> times, each copy carrying its own height in UV1. The shader
+/// lifts each copy along the normal and punches blade-shaped holes in it.
+///
+/// Because the shells live in the mesh rather than in repeated draw calls, the patch is an
+/// ordinary MeshRenderer: it batches, it culls, it casts shadows, and nothing runs per frame on
+/// the CPU. The cost is vertices - shells times grid - which is why this is for short grass over
+/// small areas, and GrassField handles the meadow.
+///
+/// The grid is dropped onto the terrain when it is built, so a patch hugs whatever it sits on.
+/// </summary>
+[ExecuteAlways]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+public class ShellGrassPatch : MonoBehaviour
+{
+    [Tooltip("Ground to sit on. Empty means the patch stays flat at its own height.")]
+    [SerializeField] private Terrain _terrain;
+
+    [Tooltip("Size of the patch in metres.")]
+    [SerializeField] private Vector2 _size = new Vector2(16f, 16f);
+
+    [Tooltip("Ground triangles across the patch. Only needs to be fine enough to follow the terrain.")]
+    [Range(2, 128)][SerializeField] private int _resolution = 24;
+
+    [Tooltip("How many layers. More is smoother and costs proportionally more overdraw; 12-20 is the useful range.")]
+    [Range(2, 48)][SerializeField] private int _shells = 16;
+
+    [Tooltip("How far the patch sits above the ground, in metres. A couple of centimetres keeps the terrain from poking through between the patch's own vertices.")]
+    [Range(0f, 0.2f)][SerializeField] private float _lift = 0.02f;
+
+    private Mesh _mesh;
+
+    private void OnEnable() => Rebuild();
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        // OnValidate can fire while Unity is serialising, and building a mesh is not allowed
+        // there - so the rebuild is pushed to the next editor tick.
+        if (isActiveAndEnabled) UnityEditor.EditorApplication.delayCall += SafeRebuild;
+    }
+
+    private void SafeRebuild()
+    {
+        if (this == null || !isActiveAndEnabled) return;
+        Rebuild();
+    }
+#endif
+
+    [ContextMenu("Rebuild")]
+    public void Rebuild()
+    {
+        int side = _resolution + 1;
+        int perShell = side * side;
+
+        var vertices = new List<Vector3>(perShell * _shells);
+        var normals = new List<Vector3>(perShell * _shells);
+        var uvs = new List<Vector2>(perShell * _shells);
+        var shellHeights = new List<Vector2>(perShell * _shells);
+        var triangles = new List<int>(_resolution * _resolution * 6 * _shells);
+
+        // The ground layer is built once and reused for every shell: only its height in UV1
+        // changes, and the shader does the lifting.
+        var groundPositions = new Vector3[perShell];
+        var groundNormals = new Vector3[perShell];
+
+        for (int z = 0; z < side; z++)
+        {
+            for (int x = 0; x < side; x++)
+            {
+                float u = x / (float)_resolution;
+                float v = z / (float)_resolution;
+
+                var local = new Vector3((u - 0.5f) * _size.x, 0f, (v - 0.5f) * _size.y);
+                Vector3 world = transform.TransformPoint(local);
+                Vector3 normal = Vector3.up;
+
+                if (_terrain != null)
+                {
+                    world.y = _terrain.SampleHeight(world) + _terrain.transform.position.y;
+                    normal = _terrain.terrainData.GetInterpolatedNormal(
+                        Mathf.Clamp01((world.x - _terrain.transform.position.x) / _terrain.terrainData.size.x),
+                        Mathf.Clamp01((world.z - _terrain.transform.position.z) / _terrain.terrainData.size.z));
+                }
+
+                int index = z * side + x;
+                groundPositions[index] = transform.InverseTransformPoint(world + normal * _lift);
+                groundNormals[index] = transform.InverseTransformDirection(normal);
+            }
+        }
+
+        // Built from the TOP layer down, so the mesh's triangles are already in roughly
+        // front-to-back order when you are looking at the patch from above. The shader discards,
+        // so the depth buffer cannot be filled early - but the depth TEST still rejects, and
+        // ordering the stack this way lets it. Ground-first is the worst possible order: every
+        // layer above the soil is nearer than what is already drawn, so nothing is ever rejected
+        // and all sixteen shells shade every pixel. The picture is identical either way.
+        for (int layer = 0; layer < _shells; layer++)
+        {
+            int shell = _shells - 1 - layer;
+            float shellT = _shells == 1 ? 0f : shell / (float)(_shells - 1);
+            int offset = layer * perShell;
+
+            for (int z = 0; z < side; z++)
+            {
+                for (int x = 0; x < side; x++)
+                {
+                    int index = z * side + x;
+                    vertices.Add(groundPositions[index]);
+                    normals.Add(groundNormals[index]);
+                    uvs.Add(new Vector2(x / (float)_resolution, z / (float)_resolution));
+                    shellHeights.Add(new Vector2(shellT, 0f));
+                }
+            }
+
+            for (int z = 0; z < _resolution; z++)
+            {
+                for (int x = 0; x < _resolution; x++)
+                {
+                    int a = offset + z * side + x;
+                    int b = a + 1;
+                    int c = a + side;
+                    int d = c + 1;
+
+                    triangles.Add(a); triangles.Add(c); triangles.Add(b);
+                    triangles.Add(b); triangles.Add(c); triangles.Add(d);
+                }
+            }
+        }
+
+        if (_mesh == null)
+        {
+            // Adopt whatever is already on the filter before allocating anything.
+            //
+            // _mesh is a plain field, so a script recompile wipes it - but the native Mesh it
+            // pointed at survives the reload and is still hanging off the MeshFilter. Allocating
+            // a fresh one here would strand that mesh, and HideAndDontSave means it is exempt
+            // from UnloadUnusedAssets, so it would stay resident for the whole session. Half an
+            // hour of shader iteration leaves a pile of them.
+            Mesh existing = GetComponent<MeshFilter>().sharedMesh;
+            _mesh = existing != null && existing.hideFlags == HideFlags.HideAndDontSave
+                ? existing
+                : new Mesh { name = "ShellGrassPatch", hideFlags = HideFlags.HideAndDontSave };
+        }
+
+        _mesh.Clear();
+        _mesh.indexFormat = vertices.Count > 65535
+            ? UnityEngine.Rendering.IndexFormat.UInt32
+            : UnityEngine.Rendering.IndexFormat.UInt16;
+
+        _mesh.SetVertices(vertices);
+        _mesh.SetNormals(normals);
+        _mesh.SetUVs(0, uvs);
+        _mesh.SetUVs(1, shellHeights);
+        _mesh.SetTriangles(triangles, 0);
+        _mesh.RecalculateBounds();
+
+        // The shader lifts the top shell off the surface, so the bounds have to allow for it or
+        // the patch pops out of view when only its grass is on screen.
+        Bounds bounds = _mesh.bounds;
+        bounds.Expand(new Vector3(0f, 1f, 0f));
+        _mesh.bounds = bounds;
+
+        GetComponent<MeshFilter>().sharedMesh = _mesh;
+    }
+
+    /// <summary>The generated mesh is nobody else's, so this component has to clean it up.</summary>
+    private void OnDestroy()
+    {
+        if (_mesh == null) return;
+
+        if (Application.isPlaying) Destroy(_mesh);
+        else DestroyImmediate(_mesh);
+        _mesh = null;
+    }
+}
